@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="{{ .Site.LanguageCode }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title | plainify }} — {{ .Site.Title }}{{ end }}</title>
+  {{ with .Params.subtitle }}<meta name="description" content="{{ . }}" />{{ else }}{{ with .Site.Params.description }}<meta name="description" content="{{ . }}" />{{ end }}{{ end }}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Bricolage+Grotesque:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ "css/main.css" | relURL }}" />
+  <!-- Apply saved theme before paint to prevent flash -->
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var system = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', saved || system);
+    })();
+  </script>
+</head>
+<body>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle colour theme"></button>
+  <div class="container">
+    {{ block "main" . }}{{ end }}
+  </div>
+  <script>
+    var btn = document.getElementById('theme-toggle');
+    function updateBtn() {
+      var theme = document.documentElement.getAttribute('data-theme');
+      btn.textContent = theme === 'light' ? 'dark' : 'light';
+    }
+    updateBtn();
+    btn.addEventListener('click', function () {
+      var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateBtn();
+    });
+  </script>
+</body>
+</html>

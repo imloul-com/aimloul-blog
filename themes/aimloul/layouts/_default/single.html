@@ -1,0 +1,27 @@
+{{ define "main" }}
+<nav class="site-nav">
+  <a href="{{ "/" | relURL }}" class="nav-back">← All posts</a>
+  <a href="{{ "/" | relURL }}" class="nav-logo">{{ .Site.Title }}</a>
+</nav>
+
+<header>
+  {{ with .Params.category }}
+  <div class="eyebrow">{{ . }}</div>
+  {{ end }}
+  <h1>{{ .Title | safeHTML }}</h1>
+  {{ with .Params.subtitle }}
+  <p class="subtitle">{{ . }}</p>
+  {{ end }}
+  <div class="meta">
+    <span>{{ .Params.author | default .Site.Params.author }}</span>
+    <span class="meta-dot">·</span>
+    <span>{{ with .Params.readTime }}{{ . }}{{ else }}{{ div (add .WordCount 199) 200 }} min read{{ end }}</span>
+    <span class="meta-dot">·</span>
+    <span>{{ .Date.Format "Jan 2006" }}</span>
+  </div>
+</header>
+
+<article>
+  {{ .Content }}
+</article>
+{{ end }}

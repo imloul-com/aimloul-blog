@@ -1,0 +1,27 @@
+{{ define "main" }}
+<div class="home-header">
+  <div class="home-logo">{{ .Site.Title }}</div>
+  {{ with .Site.Params.description }}
+  <p class="home-desc">{{ . }}</p>
+  {{ end }}
+</div>
+
+<div class="post-list">
+  {{ range .Pages.ByDate.Reverse }}
+  <a href="{{ .RelPermalink }}" class="post-card">
+    {{ with .Params.category }}
+    <span class="post-category">{{ . }}</span>
+    {{ end }}
+    <h2 class="post-title">{{ .Title | safeHTML }}</h2>
+    {{ with .Params.subtitle }}
+    <p class="post-subtitle">{{ . }}</p>
+    {{ end }}
+    <div class="post-meta">
+      <span>{{ .Date.Format "Jan 2006" }}</span>
+      <span class="meta-dot">·</span>
+      <span>{{ with .Params.readTime }}{{ . }}{{ else }}{{ div (add .WordCount 199) 200 }} min read{{ end }}</span>
+    </div>
+  </a>
+  {{ end }}
+</div>
+{{ end }}

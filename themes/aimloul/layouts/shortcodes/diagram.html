@@ -1,0 +1,15 @@
+{{ $src := .Get "src" }}
+{{ $caption := .Get "caption" }}
+{{ $dark  := resources.Get (printf "diagrams/%s-dark.svg"  $src) }}
+{{ $light := resources.Get (printf "diagrams/%s-light.svg" $src) }}
+<figure class="diagram">
+  {{ with $dark }}
+  <div class="diagram-inner diagram-dark">{{ .Content | safeHTML }}</div>
+  {{ end }}
+  {{ with $light }}
+  <div class="diagram-inner diagram-light">{{ .Content | safeHTML }}</div>
+  {{ end }}
+  {{ with $caption }}
+  <figcaption class="diagram-caption">{{ . }}</figcaption>
+  {{ end }}
+</figure>

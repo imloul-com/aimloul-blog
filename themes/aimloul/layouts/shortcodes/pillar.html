@@ -1,0 +1,9 @@
+{{ $num := .Get "num" }}
+{{ $title := .Get "title" }}
+<div class="pillar">
+  <div class="pillar-num">{{ $num }}</div>
+  <div>
+    <div class="pillar-title">{{ $title }}</div>
+    <p class="pillar-desc">{{ .Inner | markdownify }}</p>
+  </div>
+</div>

@@ -1,0 +1,60 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+
+direction: down
+
+root: {
+  shape: sql_table
+  keys: "250k | 500k | 750k"
+  count: "subtree count: 500,000"
+}
+
+n1: {
+  shape: sql_table
+  keys: "80k | 160k"
+  count: "subtree count: 100,000"
+}
+
+n2: {
+  shape: sql_table
+  keys: "320k | 420k"
+  count: "subtree count: 150,000"
+}
+
+n3: {
+  shape: sql_table
+  keys: "580k | 660k"
+  count: "subtree count: 120,000"
+}
+
+n4: {
+  shape: sql_table
+  keys: "820k | 920k"
+  count: "subtree count: 130,000"
+}
+
+leaf1: "rows → disk ptr"
+leaf2: "rows → disk ptr"
+leaf3: "rows → disk ptr"
+leaf4: "rows → disk ptr"
+leaf5: "rows → disk ptr"
+leaf6: "rows → disk ptr"
+leaf7: "rows → disk ptr"
+leaf8: "rows → disk ptr"
+
+root -> n1
+root -> n2
+root -> n3
+root -> n4
+
+n1 -> leaf1
+n1 -> leaf2
+n2 -> leaf3
+n2 -> leaf4
+n3 -> leaf5
+n3 -> leaf6
+n4 -> leaf7
+n4 -> leaf8

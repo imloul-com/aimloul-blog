@@ -1,0 +1,37 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+
+direction: down
+
+root: "250k | 500k | 750k"
+
+n1: "80k | 160k"
+n2: "320k | 420k"
+n3: "580k | 660k"
+n4: "820k | 920k"
+
+leaf1: "rows → disk ptr"
+leaf2: "rows → disk ptr"
+leaf3: "rows → disk ptr"
+leaf4: "rows → disk ptr"
+leaf5: "rows → disk ptr"
+leaf6: "rows → disk ptr"
+leaf7: "rows → disk ptr"
+leaf8: "rows → disk ptr"
+
+root -> n1
+root -> n2
+root -> n3
+root -> n4
+
+n1 -> leaf1
+n1 -> leaf2
+n2 -> leaf3
+n2 -> leaf4
+n3 -> leaf5
+n3 -> leaf6
+n4 -> leaf7
+n4 -> leaf8

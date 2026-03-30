@@ -1,0 +1,22 @@
+# Hugo build output
+public/
+resources/
+
+# Generated diagrams
+assets/diagrams/
+.hugo_build.lock
+
+# macOS
+.DS_Store
+
+# GoLand
+.idea/
+
+# Editors
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.*

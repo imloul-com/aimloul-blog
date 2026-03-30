@@ -1,0 +1,7 @@
+{{ $title := .Get "title" }}
+{{ $label := .Get "label" | default "Conclusion" }}
+<div class="conclusion">
+  <span class="section-label">{{ $label }}</span>
+  <h2>{{ $title }}</h2>
+  {{ .Inner | markdownify }}
+</div>

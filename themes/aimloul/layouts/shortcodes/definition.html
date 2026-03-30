@@ -1,0 +1,9 @@
+{{ $icon := .Get "icon" | default "📌" }}
+{{ $term := .Get "term" }}
+<div class="definition">
+  <div class="definition-icon">{{ $icon }}</div>
+  <div class="definition-body">
+    <div class="definition-term">{{ $term }}</div>
+    <p class="definition-desc">{{ .Inner | markdownify }}</p>
+  </div>
+</div>

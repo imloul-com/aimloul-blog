@@ -1,0 +1,18 @@
+baseURL = 'https://aimloul.com/'
+languageCode = 'en-us'
+title = 'aimloul'
+theme = 'aimloul'
+
+[params]
+  author = 'Imloul Anas'
+  description = 'Writing about database internals, systems design, and backend engineering.'
+
+[markup]
+  [markup.highlight]
+    noClasses = true
+    style = 'nord'
+    lineNos = false
+    tabWidth = 2
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
