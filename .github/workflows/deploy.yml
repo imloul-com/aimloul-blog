@@ -20,7 +20,7 @@ jobs:
         run: curl -fsSL https://d2lang.com/install.sh | sh -s --
 
       - name: Generate diagrams
-        run: make diagrams
+        run: make diagrams -j
 
       - name: Build
         run: hugo --minify
