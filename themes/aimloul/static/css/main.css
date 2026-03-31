@@ -937,7 +937,7 @@ article hr {
   z-index: 200;
 }
 
-@media (max-width: 1359px) {
+@media (min-width: 601px) and (max-width: 1359px) {
   .toc-float { display: block; }
 }
 
@@ -1076,12 +1076,6 @@ article hr {
   .read-next-card { flex-wrap: wrap; gap: 10px; padding: 18px 20px; }
   .read-next-title { width: 100%; }
   .read-next-arrow { margin-left: auto; }
-
-  /* TOC float: JS drives bottom via visualViewport; this is the static fallback */
-  .toc-float {
-    bottom: 12px;
-    right: 20px;
-  }
 
   /* Archive: also hide Read column, make search full-width */
   .col-read,
