@@ -84,6 +84,17 @@
   </script>
   <script>
     (function () {
+      var float = document.getElementById('toc-float');
+      if (float && window.visualViewport) {
+        function reposition() {
+          var chromeHeight = window.innerHeight - window.visualViewport.offsetTop - window.visualViewport.height;
+          float.style.bottom = (Math.max(chromeHeight, 0) + 12) + 'px';
+        }
+        window.visualViewport.addEventListener('resize', reposition);
+        reposition();
+      }
+    })();
+    (function () {
       var btn   = document.getElementById('toc-float-btn');
       var panel = document.getElementById('toc-float-panel');
       if (!btn || !panel) return;
