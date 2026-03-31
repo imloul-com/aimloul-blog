@@ -1,6 +1,12 @@
 {{ define "nav-back" }}<a href="{{ "/" | relURL }}" class="nav-back">← All posts</a>{{ end }}
 
 {{ define "main" }}
+{{ if .TableOfContents }}
+<aside class="toc-sidebar" aria-label="On this page">
+  <p class="toc-label">On this page</p>
+  {{ .TableOfContents }}
+</aside>
+{{ end }}
 <article>
   <header>
     {{ with .Params.category }}
@@ -20,6 +26,26 @@
   </header>
   {{ .Content }}
 </article>
+
+{{ if .TableOfContents }}
+<div class="toc-float" id="toc-float">
+  <div class="toc-float-panel" id="toc-float-panel" aria-hidden="true">
+    <p class="toc-float-heading">On this page</p>
+    {{ .TableOfContents }}
+  </div>
+  <button class="toc-float-btn" id="toc-float-btn" aria-expanded="false" aria-controls="toc-float-panel">
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+      <line x1="4.5" y1="3.5"  x2="13" y2="3.5"  stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="4.5" y1="7.5"  x2="13" y2="7.5"  stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="4.5" y1="11.5" x2="13" y2="11.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <circle cx="2" cy="3.5"  r="1" fill="currentColor"/>
+      <circle cx="2" cy="7.5"  r="1" fill="currentColor"/>
+      <circle cx="2" cy="11.5" r="1" fill="currentColor"/>
+    </svg>
+    <span>Contents</span>
+  </button>
+</div>
+{{ end }}
 
 {{/* Resolve the read-next post: explicit frontmatter first, then next in section */}}
 {{ $next := .NextInSection }}

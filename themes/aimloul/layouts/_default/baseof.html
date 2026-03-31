@@ -82,5 +82,56 @@
       localStorage.setItem('theme', next);
     });
   </script>
+  <script>
+    (function () {
+      var btn   = document.getElementById('toc-float-btn');
+      var panel = document.getElementById('toc-float-panel');
+      if (!btn || !panel) return;
+      function close() {
+        panel.classList.remove('is-open');
+        panel.setAttribute('aria-hidden', 'true');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var open = panel.classList.toggle('is-open');
+        panel.setAttribute('aria-hidden', String(!open));
+        btn.setAttribute('aria-expanded', String(open));
+      });
+      panel.querySelectorAll('nav a').forEach(function (a) {
+        a.addEventListener('click', close);
+      });
+      document.addEventListener('click', function (e) {
+        if (!document.getElementById('toc-float').contains(e.target)) close();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') close();
+      });
+    })();
+  </script>
+  <script>
+    (function () {
+      var sidebar = document.querySelector('.toc-sidebar');
+      if (!sidebar) return;
+      var links = Array.from(sidebar.querySelectorAll('nav > ul > li > a'));
+      if (!links.length) return;
+      var headings = links.map(function (a) {
+        var id = decodeURIComponent(a.getAttribute('href').slice(1));
+        return { el: document.getElementById(id), a: a };
+      }).filter(function (h) { return h.el; });
+      if (!headings.length) return;
+      function updateActive() {
+        var scrollY = window.scrollY + 120;
+        var active = headings[0];
+        for (var i = 0; i < headings.length; i++) {
+          if (headings[i].el.offsetTop <= scrollY) active = headings[i];
+        }
+        links.forEach(function (a) { a.classList.remove('toc-active'); });
+        active.a.classList.add('toc-active');
+      }
+      window.addEventListener('scroll', updateActive, { passive: true });
+      updateActive();
+    })();
+  </script>
 </body>
 </html>

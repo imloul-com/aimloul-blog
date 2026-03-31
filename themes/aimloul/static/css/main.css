@@ -862,6 +862,176 @@ article hr {
   padding: 5px 4px;
 }
 
+/* ── TOC SIDEBAR (wide screens only) ── */
+.toc-sidebar {
+  display: none;
+  position: fixed;
+  top: 120px;
+  left: calc(50% + 450px);
+  width: 200px;
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.toc-sidebar::-webkit-scrollbar { display: none; }
+
+@media (min-width: 1360px) {
+  .toc-sidebar { display: block; }
+}
+
+.toc-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+}
+
+.toc-sidebar nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.toc-sidebar nav > ul > li { margin-bottom: 2px; }
+.toc-sidebar nav > ul > li > a {
+  display: flex;
+  align-items: flex-start;
+}
+.toc-sidebar nav > ul > li > a::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  margin-right: 8px;
+  margin-top: 6px;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+.toc-sidebar nav > ul > li > a:hover::before { background: var(--accent); }
+.toc-sidebar nav a {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-decoration: none;
+  line-height: 1.55;
+  padding: 3px 0 3px 10px;
+  border-left: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.toc-sidebar nav a:hover { color: var(--text); }
+.toc-sidebar nav a.toc-active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.toc-sidebar nav ul ul { display: none; }
+
+/* ── TOC FLOAT BUTTON (below sidebar breakpoint) ── */
+.toc-float {
+  display: none;
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 200;
+}
+
+@media (max-width: 1359px) {
+  .toc-float { display: block; }
+}
+
+.toc-float-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 10px 18px 10px 14px;
+  border-radius: 100px;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.toc-float-btn:hover { color: var(--text); border-color: var(--text-dim); }
+.toc-float-btn[aria-expanded="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.toc-float-panel {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  width: 232px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+  max-height: 55vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+  opacity: 0;
+  transform: translateY(6px) scale(0.98);
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.toc-float-panel::-webkit-scrollbar { display: none; }
+.toc-float-panel.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.toc-float-heading {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+}
+
+.toc-float-panel nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.toc-float-panel nav > ul > li { margin-bottom: 2px; }
+.toc-float-panel nav > ul > li > a {
+  display: flex;
+  align-items: flex-start;
+}
+.toc-float-panel nav > ul > li > a::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  margin-right: 8px;
+  margin-top: 6px;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+.toc-float-panel nav > ul > li > a:hover::before { background: var(--accent); }
+.toc-float-panel nav a {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-decoration: none;
+  padding: 4px 0;
+  line-height: 1.5;
+  transition: color 0.15s ease;
+}
+.toc-float-panel nav a:hover { color: var(--accent); }
+.toc-float-panel nav ul ul { display: none; }
+
 /* ── RESPONSIVE: TABLET (≤ 860px) ── */
 @media (max-width: 860px) {
   .container { padding: 0 24px; }

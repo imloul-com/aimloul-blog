@@ -10,6 +10,10 @@ theme = 'aimloul'
   description = 'Writing about database internals, systems design, and backend engineering.'
 
 [markup]
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel = 3
+    ordered = false
   [markup.highlight]
     noClasses = true
     style = 'nord'
