@@ -1,0 +1,35 @@
+{{ define "main" }}
+<div class="offline-page">
+  <p class="eyebrow">Offline</p>
+  <h1>You're not connected</h1>
+  <p class="subtitle">This page isn't cached yet. Articles you've already read are available below.</p>
+  <div id="cached-pages"></div>
+</div>
+<script>
+  caches.open('aimloul-v1').then(function (cache) {
+    return cache.keys();
+  }).then(function (keys) {
+    var articles = keys
+      .map(function (r) { return new URL(r.url).pathname; })
+      .filter(function (p) { return p.endsWith('/') && p !== '/' && p !== '/offline/'; });
+
+    var container = document.getElementById('cached-pages');
+    if (!articles.length) {
+      container.innerHTML = '<p class="offline-empty">No articles cached yet — visit some articles while online first.</p>';
+      return;
+    }
+    var list = document.createElement('ul');
+    list.className = 'offline-list';
+    articles.forEach(function (path) {
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.href = path;
+      var slug = path.split('/').filter(Boolean).pop() || path;
+      a.textContent = slug.replace(/-/g, ' ');
+      li.appendChild(a);
+      list.appendChild(li);
+    });
+    container.appendChild(list);
+  });
+</script>
+{{ end }}

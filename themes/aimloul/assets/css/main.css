@@ -142,6 +142,14 @@ body::before {
   animation: fadeUp 0.9s 0.08s ease both;
 }
 
+/* ── OFFLINE PAGE ── */
+.offline-page { padding: 80px 0; }
+.offline-list { list-style: none; margin-top: 32px; }
+.offline-list li { padding: 14px 0; border-bottom: 1px solid var(--border); }
+.offline-list a { color: var(--text); text-decoration: none; }
+.offline-list a:hover { color: var(--accent); }
+.offline-empty { color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 13px; margin-top: 32px; }
+
 .pagination-nav {
   display: flex;
   justify-content: space-between;

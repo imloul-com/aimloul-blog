@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Bricolage+Grotesque:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="icon" type="image/svg+xml" href="{{ "favicon.svg" | relURL }}" />
+  <link rel="manifest" href="{{ "manifest.json" | relURL }}" />
+  <meta name="theme-color" content="#0e0c0a" />
   {{ $css := resources.Get "css/main.css" | fingerprint }}
   <link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}" crossorigin="anonymous" />
   {{ if .Params.math }}
@@ -135,6 +137,11 @@
       window.addEventListener('scroll', updateActive, { passive: true });
       updateActive();
     })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
   </script>
 </body>
 </html>

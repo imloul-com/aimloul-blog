@@ -1,0 +1,16 @@
+{
+  "name": "aimloul",
+  "short_name": "aimloul",
+  "description": "Writing about database internals, systems design, and backend engineering.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e0c0a",
+  "theme_color": "#0e0c0a",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
