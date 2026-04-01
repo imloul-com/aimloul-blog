@@ -1,0 +1,55 @@
+{{/* Generates a per-page PNG og-image. Outputs only the absolute URL string (no return). */}}
+{{- $bg        := resources.Get "images/og-base.png" -}}
+{{- $titleFont := resources.Get "fonts/instrument-serif.ttf" -}}
+{{- $monoFont  := resources.Get "fonts/dm-mono.ttf" -}}
+{{- $accent    := resources.Get "images/og-accent.png" -}}
+
+{{- if and $bg $titleFont $monoFont -}}
+
+  {{- $title    := .Title | plainify | replaceRE `\s+` " " -}}
+  {{- $subtitle := .Params.subtitle -}}
+  {{- $allTitleLines := partial "wordwrap.html" (dict "text" $title "max" 36) -}}
+  {{- $titleLines := $allTitleLines | first 3 -}}
+  {{- if gt (len $allTitleLines) 3 -}}
+    {{- $li := sub (len $titleLines) 1 -}}
+    {{- $titleLines = $titleLines | first $li | append (printf "%s..." (index $titleLines $li)) -}}
+  {{- end -}}
+
+  {{- $img := $bg -}}
+
+  {{/* Site label */}}
+  {{- $img = $img | images.Filter (images.Text .Site.Title (dict "color" "#e8613a" "size" 22 "x" 80 "y" 56 "font" $monoFont)) -}}
+
+  {{/* Title lines */}}
+  {{- $titleStartY := 140 -}}
+  {{- $titleLineH  := 90 -}}
+  {{- range $i, $line := $titleLines -}}
+    {{- $y := add $titleStartY (mul $i $titleLineH) -}}
+    {{- $img = $img | images.Filter (images.Text $line (dict "color" "#e8e6e0" "size" 60 "x" 80 "y" $y "font" $titleFont)) -}}
+  {{- end -}}
+
+  {{/* Subtitle */}}
+  {{- if $subtitle -}}
+    {{- $allSubtitleLines := partial "wordwrap.html" (dict "text" $subtitle "max" 60) -}}
+    {{- $subtitleLines := $allSubtitleLines | first 2 -}}
+    {{- if gt (len $allSubtitleLines) 2 -}}
+      {{- $li := sub (len $subtitleLines) 1 -}}
+      {{- $subtitleLines = $subtitleLines | first $li | append (printf "%s..." (index $subtitleLines $li)) -}}
+    {{- end -}}
+    {{- $nTitle := len $titleLines -}}
+    {{- $subtitleStartY := add $titleStartY (mul $nTitle $titleLineH) -}}
+    {{- $subtitleStartY = add $subtitleStartY 36 -}}
+    {{- range $i, $line := $subtitleLines -}}
+      {{- $y := add $subtitleStartY (mul $i 40) -}}
+      {{- $img = $img | images.Filter (images.Text $line (dict "color" "#8a8880" "size" 24 "x" 80 "y" $y "font" $monoFont)) -}}
+    {{- end -}}
+  {{- end -}}
+
+  {{/* Accent bar */}}
+  {{- if $accent -}}
+    {{- $img = $img | images.Filter (images.Overlay $accent 80 580) -}}
+  {{- end -}}
+
+  {{- $img.Permalink -}}
+
+{{- end -}}

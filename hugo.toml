@@ -4,16 +4,6 @@ title = 'a.imloul'
 theme = 'aimloul'
 enableRobotsTXT = true
 
-[outputFormats]
-  [outputFormats.OGImage]
-    mediaType = "image/svg+xml"
-    baseName = "og-image"
-    isPlainText = true
-    notAlternative = true
-
-[outputs]
-  page = ["HTML", "OGImage"]
-
 [taxonomies]
   tag = "tags"
 [pagination]

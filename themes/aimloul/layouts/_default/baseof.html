@@ -12,11 +12,17 @@
   <meta property="og:type" content="{{ if .IsPage }}article{{ else }}website{{ end }}" />
   <meta property="og:url" content="{{ .Permalink }}" />
   <meta property="og:site_name" content="{{ .Site.Title }}" />
-  <meta property="og:title" content="{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title | plainify }} — {{ .Site.Title }}{{ end }}" />
+  <meta property="og:title" content="{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title | plainify }}{{ end }}" />
   <meta property="og:description" content="{{ $desc }}" />
   {{ $ogImage := "" }}
-  {{ with .OutputFormats.Get "OGImage" }}{{ $ogImage = .Permalink }}{{ else }}{{ $ogImage = $.Params.image | default $.Site.Params.ogImage | absURL }}{{ end }}
-  {{ with $ogImage }}<meta property="og:image" content="{{ . }}" />{{ end }}
+  {{ if or .IsPage .IsHome }}{{ $ogImage = partial "og-image.html" . }}{{ end }}
+  {{ if not $ogImage }}{{ $ogImage = .Params.image | default .Site.Params.ogImage | absURL }}{{ end }}
+  {{ with $ogImage }}
+  <meta property="og:image" content="{{ . }}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="{{ if $.IsHome }}{{ $.Site.Title }}{{ else }}{{ $.Title | plainify }}{{ end }}" />
+  {{ end }}
   {{ if .IsPage }}
   <meta property="article:published_time" content="{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}" />
   <meta property="article:modified_time" content="{{ .Lastmod.Format "2006-01-02T15:04:05Z07:00" }}" />
@@ -25,7 +31,7 @@
   {{ end }}{{ end }}
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title | plainify }} — {{ .Site.Title }}{{ end }}" />
+  <meta name="twitter:title" content="{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title | plainify }}{{ end }}" />
   <meta name="twitter:description" content="{{ $desc }}" />
   {{ with $ogImage }}<meta name="twitter:image" content="{{ . }}" />{{ end }}
   <!-- JSON-LD -->
