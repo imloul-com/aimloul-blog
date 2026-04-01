@@ -2,7 +2,7 @@
 :root,
 [data-theme="dark"] {
   --bg: #0e0c0a;
-  --surface: #181511;
+  --surface: #141210;
   --border: #242430;
   --accent: #e8613a;
   --accent-dim: rgba(232, 97, 58, 0.12);
@@ -10,7 +10,7 @@
   --text: #e8e6e0;
   --text-dim: #8a8880;
   --text-mid: #b5b2aa;
-  --code-bg: #1a1a22;
+  --code-bg: #141210;
   --good: #4caf82;
   --bad: #e05555;
   --callout-error: #b05c5c;
@@ -87,6 +87,7 @@ body::before {
 .site-header {
   padding: 28px 0;
   border-bottom: 1px solid var(--border);
+
 }
 
 .site-header-row {

@@ -37,11 +37,11 @@ Yet no mainstream transactional database (PostgreSQL, MySQL/InnoDB, Oracle, SQL 
 The index structure used by virtually every relational database. Each internal node stores routing keys: values used to navigate left or right toward a leaf node, where the actual data pointer lives. Internal nodes contain no information about how many rows exist beneath them. If you missed the deep-dive on how B-trees work, the previous article in this series covers it in full.
 {{< /definition >}}
 
+{{< diagram src="the-forbidden-data-structure/btree" caption="Standard B-Tree: internal nodes hold only routing keys. No row count exists anywhere in the tree." >}}
+
 {{< definition icon="OST" term="Order Statistics Tree (OST)" >}}
 A B-tree augmented with one extra piece of data per internal node: **the exact count of all rows in that node's subtree**. With this, finding the 500,000th row becomes a tree traversal: at each node, compare your target rank against the left subtree's count and go left or right accordingly. This turns an O(N) scan into an O(log n) descent.
 {{< /definition >}}
-
-{{< diagram src="the-forbidden-data-structure/btree" caption="Standard B-Tree: internal nodes hold only routing keys. No row count exists anywhere in the tree." >}}
 
 {{< diagram src="the-forbidden-data-structure/ost" caption="Order Statistics Tree: each internal node carries a subtree row count (orange). This enables O(log n) rank queries and is the source of all three problems." >}}
 
