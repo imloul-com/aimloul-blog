@@ -1,0 +1,22 @@
+{{- $text := .text -}}
+{{- $max  := .max -}}
+{{- $words := split $text " " -}}
+{{- $line := "" -}}
+{{- $lines := slice -}}
+{{- range $words -}}
+  {{- if eq $line "" -}}
+    {{- $line = . -}}
+  {{- else -}}
+    {{- $try := printf "%s %s" $line . -}}
+    {{- if gt (len $try) $max -}}
+      {{- $lines = $lines | append $line -}}
+      {{- $line = . -}}
+    {{- else -}}
+      {{- $line = $try -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if ne $line "" -}}
+  {{- $lines = $lines | append $line -}}
+{{- end -}}
+{{- return $lines -}}

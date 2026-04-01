@@ -1,1 +1,1 @@
-module aimloul-blog
+module a.imloul-blog

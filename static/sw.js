@@ -1,4 +1,4 @@
-const CACHE = 'aimloul-v1';
+const CACHE = 'a.imloul-v1';
 const OFFLINE_URL = '/offline/';
 const NETWORK_TIMEOUT_MS = 4000;
 

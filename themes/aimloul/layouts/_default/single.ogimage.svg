@@ -1,0 +1,24 @@
+{{- $title    := .Title | plainify | replaceRE `\s+` " " | htmlEscape -}}
+{{- $subtitle := .Params.subtitle | htmlEscape -}}
+{{- $site     := .Site.Title | htmlEscape -}}
+
+{{- $titleLines    := partial "wordwrap.html" (dict "text" $title    "max" 28) | first 3 -}}
+{{- $subtitleLines := partial "wordwrap.html" (dict "text" $subtitle "max" 56) | first 2 -}}
+
+{{- $titleLineH  := 82 -}}
+{{- $titleStartY := 230 -}}
+{{- $titleEndY   := add $titleStartY (mul (len $titleLines) $titleLineH) -}}
+{{- $subtitleY   := add $titleEndY 44 -}}
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0e0c0a"/>
+  <text x="80" y="78" font-family="'Courier New', Courier, monospace" font-size="22" fill="#e8613a" letter-spacing="1">{{ $site }}</text>
+  {{ range $i, $line := $titleLines -}}
+  <text x="80" y="{{ add $titleStartY (mul $i $titleLineH) }}" font-family="Georgia, 'Times New Roman', serif" font-size="64" fill="#e8e6e0" letter-spacing="-1">{{ $line }}</text>
+  {{ end -}}
+  {{ if $subtitle -}}
+  {{ range $i, $line := $subtitleLines -}}
+  <text x="80" y="{{ add $subtitleY (mul $i 40) }}" font-family="'Courier New', Courier, monospace" font-size="26" fill="#8a8880">{{ $line }}</text>
+  {{ end -}}
+  {{ end -}}
+  <rect x="80" y="580" width="60" height="4" fill="#e8613a"/>
+</svg>

@@ -1,8 +1,18 @@
-baseURL = 'https://aimloul.com/'
+baseURL = 'https://imloul.com/'
 languageCode = 'en-us'
-title = 'aimloul'
+title = 'a.imloul'
 theme = 'aimloul'
 enableRobotsTXT = true
+
+[outputFormats]
+  [outputFormats.OGImage]
+    mediaType = "image/svg+xml"
+    baseName = "og-image"
+    isPlainText = true
+    notAlternative = true
+
+[outputs]
+  page = ["HTML", "OGImage"]
 
 [taxonomies]
   tag = "tags"
@@ -12,6 +22,7 @@ enableRobotsTXT = true
 [params]
   author = 'Imloul Anas'
   description = 'Writing about database internals, systems design, and backend engineering.'
+  ogImage = '/og-image.svg'
 
 [markup]
   [markup.tableOfContents]
