@@ -7,7 +7,7 @@
   {{ if not $tags }}{{ $tags = slice }}{{ end }}
   {{ with .Params.category }}{{ $tags = $tags | append . }}{{ end }}
   {{ $readTime := .Params.readTime }}
-  {{ if not $readTime }}{{ $readTime = printf "%d min read" (div (add .WordCount 199) 200) }}{{ end }}
+  {{ if not $readTime }}{{ $readTime = printf "%d min read" (div (add .WordCount 237) 238) }}{{ end }}
   {{ $posts = $posts | append (dict
     "title"    .Title
     "url"      .RelPermalink
