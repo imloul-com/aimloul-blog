@@ -19,7 +19,7 @@ SELECT * FROM transactions ORDER BY created_at LIMIT 50 OFFSET 500000;
 
 Suddenly, your database CPU utilization spikes to 100%. Query latency jumps from a snappy 2 milliseconds to an agonizing 4,500 milliseconds. The memory pressure from that massive sequential scan forces the cache to evict frequently-accessed data, which you can watch unfold in real time as your **Page Life Expectancy** metrics plummet.
 
-{{< callout title="Why does this happen?" >}}
+{{< callout title="Why does this happen?" type="error" >}}
 The `OFFSET` clause has no algorithmic shortcut. To reach row 500,000, the database must physically retrieve all 500,050 preceding rows into memory, then throw away the first 500,000 and return the last 50. It cannot "skip ahead" the way you can with a bookmark. The same applies to `SELECT COUNT(*)`: there is no cached answer anywhere in the system. The engine counts every qualifying row from scratch, for every query, every time. The reason why will become clear shortly.
 {{< /callout >}}
 
@@ -86,7 +86,7 @@ Consider this scenario:
 
 From Transaction B's snapshot, those 10,000 rows do not exist yet. The correct count for B excludes them. But from Transaction A's own perspective, the rows definitely exist. Now, if we stored a count of *N + 10,000* on the root node, Transaction B would see an inflated, incorrect count. If we stored *N*, Transaction A would see an incorrect count of its own in-progress work.
 
-{{< callout title="The core problem" >}}
+{{< callout title="The core problem" type="error">}}
 A single integer stamped on a B-tree node cannot simultaneously represent two different correct answers. Every row's visibility must be evaluated at query time, against the executing transaction's specific snapshot. This makes pre-stored counts not just inaccurate: they are **architecturally meaningless**. It is also why `SELECT COUNT(*)` is never instant: PostgreSQL cannot return a cached number because the correct answer is different for every transaction asking the question.
 {{< /callout >}}
 
@@ -110,7 +110,7 @@ An Order Statistics Tree destroys this property entirely, and understanding why 
 
 When a new row is inserted into a leaf node, that leaf's subtree count must increase by 1. But the parent node's count must also increase by 1, because its subtree now contains one more row. And the grandparent's. And so on, all the way to the root. This cascade is not optional and cannot be deferred: the entire point of the OST is that every node's count is always accurate, because the descent algorithm relies on those counts being precisely correct at every step to make the left-or-right navigation decision. A stale count at any level produces the wrong answer.
 
-{{< callout title="The 'Hot Root' Problem" >}}
+{{< callout title="The 'Hot Root' Problem" type="error" >}}
 Because every single insert, update, or delete in the entire database must eventually lock and modify the root node to keep its count correct, the root becomes a universal choke point. On a 64-core server handling thousands of concurrent writes, **every single thread queues up and waits for its turn to touch the same node**. Your 64-core machine effectively becomes single-threaded for all write operations. The B-link tree's carefully designed per-leaf locking is completely undone.
 {{< /callout >}}
 

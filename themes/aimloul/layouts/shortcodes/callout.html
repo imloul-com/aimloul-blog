@@ -1,6 +1,6 @@
 {{ $title := .Get "title" }}
-{{ $type := .Get "type" | default "default" }}
-<div class="callout{{ if eq $type "info" }} info{{ end }}">
+{{ $type := .Get "type" }}
+<div class="callout{{ with $type }} {{ . }}{{ end }}">
   {{ with $title }}<span class="callout-title">{{ . }}</span>{{ end }}
   <div>{{ .Inner | markdownify }}</div>
 </div>

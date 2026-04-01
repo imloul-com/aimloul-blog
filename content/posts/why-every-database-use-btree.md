@@ -174,7 +174,7 @@ In a pure B-tree, internal nodes can hold data pointers alongside routing keys. 
 
 This separation produces two meaningful benefits. First, internal nodes become denser: without data pointers consuming space, each node fits more routing keys, which increases fan-out and further reduces tree height. Second, and more importantly, **range queries become simple sequential scans**.
 
-{{< callout title="Why linked leaves change everything for range queries" >}}
+{{< callout title="Why linked leaves change everything for range queries" type="info" >}}
 Consider a query for all transactions between January 1 and January 31. With a pure B-tree, you'd descend to the first matching leaf, retrieve its data, then need to re-traverse the tree from the root to find the next matching node. With a B+ tree, you descend once, find the starting leaf, then follow the linked list forward through all matching leaves. One descent, then pure sequential I/O. This is why B+ trees dominate OLTP storage engines.
 {{< /callout >}}
 
@@ -192,7 +192,7 @@ The naive approach is to hold a write lock on every node you touch during an ins
 
 The solution used by most modern engines is the **B-link tree**, a variant introduced by Lehman and Yao in 1981. The key addition is a **sibling pointer**: every node holds a pointer to its right neighbor at the same level, alongside its usual child pointers.
 
-{{< callout title="Why a single extra pointer changes everything for concurrency" >}}
+{{< callout title="Why a single extra pointer changes everything for concurrency" type="info" >}}
 When a page split occurs, the new sibling page is written and linked before the parent is updated. Any thread that was mid-traversal and finds itself on the "wrong" node after a split can follow the sibling pointer horizontally to find the correct one, without holding a lock and without restarting from the root. This localizes locking to individual leaf nodes, not entire tree paths. On a 64-core server, this is the difference between near-linear write scaling and a serialized bottleneck.
 {{< /callout >}}
 
@@ -216,7 +216,7 @@ An index in which the leaf nodes of the B-tree *contain the full row data* (not 
 Any index other than the clustered index. Leaf nodes store the indexed column value alongside the **primary key** of the matching row, not the full row. Retrieving a full row from a secondary index therefore requires two lookups: first descend the secondary B-tree to find the primary key, then descend the primary B-tree (or heap) to retrieve the row. This is called a **double lookup** or, in MySQL terminology, a **bookmark lookup**.
 {{< /definition >}}
 
-{{< callout title="The performance implication of secondary indexes" >}}
+{{< callout title="The performance implication of secondary indexes" type="error" >}}
 An `INDEX` on `(email)` for a login query is nearly instant, requiring one B-tree descent. But the same query with `SELECT *` forces a second lookup into the clustered index for every matching row. If your query is reading thousands of rows via a secondary index, those thousands of double lookups add up. This is why `SELECT *` is genuinely expensive when used with non-covering secondary indexes.
 {{< /callout >}}
 
@@ -264,7 +264,7 @@ For all their dominance, B-trees are not universal. There is one class of worklo
 
 A B-tree's sorting guarantee is one-dimensional. A key either comes before or after another key. But when you're searching for "the 10 vectors most similar to this embedding" across a 1,536-dimensional space (the default for many modern embedding models), there is no meaningful linear ordering. No matter how you project the data into a B-tree, the result is a structure where "nearby" vectors in high-dimensional space are scattered randomly across the tree's leaves.
 
-{{< callout title="The curse of dimensionality" >}}
+{{< callout title="The curse of dimensionality" type="error" >}}
 Think of it this way: imagine trying to alphabetically sort people by "personality." The sorting key simply doesn't capture proximity in the space that matters. In 1,536 dimensions, two vectors that are semantically close (say, embeddings for "cat" and "kitten") may be nowhere near each other when their values are projected onto a single number line. A query for similar vectors would therefore need to explore an exponentially growing fraction of the tree, eliminating the logarithmic advantage entirely. For this reason, vector databases use fundamentally different structures: HNSW graphs, IVF indexes, or product quantization, all of which navigate high-dimensional space probabilistically rather than with binary comparisons.
 {{< /callout >}}
 

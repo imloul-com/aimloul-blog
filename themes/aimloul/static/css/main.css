@@ -1,12 +1,12 @@
 /* ── TOKENS ── */
 :root,
 [data-theme="dark"] {
-  --bg: #0d0d0f;
-  --surface: #141418;
+  --bg: #0e0c0a;
+  --surface: #181511;
   --border: #242430;
   --accent: #e8613a;
   --accent-dim: rgba(232, 97, 58, 0.12);
-  --accent2: #5b8af5;
+  --accent2: #7a9ab5;
   --text: #e8e6e0;
   --text-dim: #8a8880;
   --text-mid: #b5b2aa;
@@ -357,11 +357,16 @@ article h2 {
   margin-bottom: 8px;
   display: block;
 }
-.callout.info {
+.callout.info  {
   border-left-color: var(--accent2);
   background: rgba(91, 138, 245, 0.08);
 }
-.callout.info .callout-title { color: var(--accent2); }
+.callout.info  .callout-title { color: var(--accent2); }
+.callout.error {
+  border-left-color: var(--bad);
+  background: rgba(224, 85, 85, 0.08);
+}
+.callout.error .callout-title { color: var(--bad); }
 
 /* ── DEFINITION BOXES ── */
 .definition {
