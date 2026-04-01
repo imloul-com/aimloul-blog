@@ -1,8 +1,13 @@
 {{/* Generates a per-page PNG og-image. Outputs only the absolute URL string (no return). */}}
-{{- $bg        := resources.Get "images/og-base.png" -}}
-{{- $titleFont := resources.Get "fonts/instrument-serif.ttf" -}}
-{{- $monoFont  := resources.Get "fonts/dm-mono.ttf" -}}
-{{- $accent    := resources.Get "images/og-accent.png" -}}
+{{/* Theme: set .Site.Params.ogTheme to "light" or "dark" in hugo.toml */}}
+{{- $isLight    := eq (.Site.Params.ogTheme | default "dark") "light" -}}
+{{- $bg         := cond $isLight (resources.Get "images/og-base-light.png") (resources.Get "images/og-base.png") -}}
+{{- $colorText  := cond $isLight "#1c1a16" "#e8e6e0" -}}
+{{- $colorDim   := cond $isLight "#7a756d" "#8a8880" -}}
+{{- $colorAccent := "#e8613a" -}}
+{{- $titleFont  := resources.Get "fonts/instrument-serif.ttf" -}}
+{{- $monoFont   := resources.Get "fonts/dm-mono.ttf" -}}
+{{- $accent     := resources.Get "images/og-accent.png" -}}
 
 {{- if and $bg $titleFont $monoFont -}}
 
@@ -11,11 +16,11 @@
   {{- if .IsHome -}}
 
     {{/* Home: large site name + description */}}
-    {{- $img = $img | images.Filter (images.Text .Site.Title (dict "color" "#e8e6e0" "size" 80 "x" 80 "y" 200 "font" $monoFont)) -}}
+    {{- $img = $img | images.Filter (images.Text .Site.Title (dict "color" $colorText "size" 80 "x" 80 "y" 200 "font" $monoFont)) -}}
     {{- $descLines := partial "wordwrap.html" (dict "text" .Site.Params.description "max" 40) | first 2 -}}
     {{- range $i, $line := $descLines -}}
       {{- $y := add 338 (mul $i 40) -}}
-      {{- $img = $img | images.Filter (images.Text $line (dict "color" "#8a8880" "size" 28 "x" 80 "y" $y "font" $monoFont)) -}}
+      {{- $img = $img | images.Filter (images.Text $line (dict "color" $colorDim "size" 28 "x" 80 "y" $y "font" $monoFont)) -}}
     {{- end -}}
     {{- if $accent -}}{{- $img = $img | images.Filter (images.Overlay $accent 80 458) -}}{{- end -}}
 
@@ -32,13 +37,13 @@
       {{- $titleLines = $titleLines | first $li | append (printf "%s..." (index $titleLines $li)) -}}
     {{- end -}}
 
-    {{- $img = $img | images.Filter (images.Text .Site.Title (dict "color" "#e8613a" "size" 22 "x" 80 "y" 56 "font" $monoFont)) -}}
+    {{- $img = $img | images.Filter (images.Text .Site.Title (dict "color" $colorAccent "size" 22 "x" 80 "y" 56 "font" $monoFont)) -}}
 
     {{- $titleStartY := 140 -}}
     {{- $titleLineH  := 90 -}}
     {{- range $i, $line := $titleLines -}}
       {{- $y := add $titleStartY (mul $i $titleLineH) -}}
-      {{- $img = $img | images.Filter (images.Text $line (dict "color" "#e8e6e0" "size" 60 "x" 80 "y" $y "font" $titleFont)) -}}
+      {{- $img = $img | images.Filter (images.Text $line (dict "color" $colorText "size" 60 "x" 80 "y" $y "font" $titleFont)) -}}
     {{- end -}}
 
     {{- if $subtitle -}}
@@ -53,7 +58,7 @@
       {{- $subtitleStartY = add $subtitleStartY 36 -}}
       {{- range $i, $line := $subtitleLines -}}
         {{- $y := add $subtitleStartY (mul $i 40) -}}
-        {{- $img = $img | images.Filter (images.Text $line (dict "color" "#8a8880" "size" 24 "x" 80 "y" $y "font" $monoFont)) -}}
+        {{- $img = $img | images.Filter (images.Text $line (dict "color" $colorDim "size" 24 "x" 80 "y" $y "font" $monoFont)) -}}
       {{- end -}}
     {{- end -}}
 
@@ -74,7 +79,7 @@
 
     {{- range $i, $line := $titleLines -}}
       {{- $y := add 200 (mul $i 92) -}}
-      {{- $img = $img | images.Filter (images.Text $line (dict "color" "#e8e6e0" "size" 72 "x" 80 "y" $y "font" $titleFont)) -}}
+      {{- $img = $img | images.Filter (images.Text $line (dict "color" $colorText "size" 72 "x" 80 "y" $y "font" $titleFont)) -}}
     {{- end -}}
 
     {{- if $subtitle -}}
@@ -89,7 +94,7 @@
       {{- $subtitleStartY = add $subtitleStartY 36 -}}
       {{- range $i, $line := $subtitleLines -}}
         {{- $y := add $subtitleStartY (mul $i 40) -}}
-        {{- $img = $img | images.Filter (images.Text $line (dict "color" "#8a8880" "size" 28 "x" 80 "y" $y "font" $monoFont)) -}}
+        {{- $img = $img | images.Filter (images.Text $line (dict "color" $colorDim "size" 28 "x" 80 "y" $y "font" $monoFont)) -}}
       {{- end -}}
     {{- end -}}
 

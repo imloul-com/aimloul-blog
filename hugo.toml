@@ -13,6 +13,7 @@ enableRobotsTXT = true
   author = 'Imloul Anas'
   description = 'Writing about database internals, systems design, and backend engineering.'
   ogImage = '/og-image.svg'
+  ogTheme = 'light'
 
 [markup]
   [markup.tableOfContents]
