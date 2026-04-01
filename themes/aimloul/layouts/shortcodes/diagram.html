@@ -1,7 +1,8 @@
 {{ $src := .Get "src" }}
 {{ $caption := .Get "caption" }}
-{{ $dark  := resources.Get (printf "diagrams/%s-dark.svg"  $src) }}
-{{ $light := resources.Get (printf "diagrams/%s-light.svg" $src) }}
+{{ $dir := strings.TrimPrefix "posts/" .Page.File.Dir }}
+{{ $dark  := resources.Get (printf "diagrams/%s%s-dark.svg"  $dir $src) }}
+{{ $light := resources.Get (printf "diagrams/%s%s-light.svg" $dir $src) }}
 <figure class="diagram">
   {{ with $dark }}
   <div class="diagram-inner diagram-dark">{{ .Content | safeHTML }}</div>

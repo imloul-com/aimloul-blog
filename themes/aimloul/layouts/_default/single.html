@@ -1,4 +1,4 @@
-{{ define "nav-back" }}<a href="{{ "/" | relURL }}" class="nav-back">← All posts</a>{{ end }}
+{{ define "nav-back" }}<a href="{{ "/" | relURL }}?tab={{ .CurrentSection.Title | urlize }}" class="nav-back">← {{ .CurrentSection.Title }}</a>{{ end }}
 
 {{ define "main" }}
 {{ if .TableOfContents }}
@@ -9,7 +9,7 @@
 {{ end }}
 <article>
   <header>
-    {{ with .Params.category }}
+    {{ with .CurrentSection.Title }}
     <div class="eyebrow">{{ . }}</div>
     {{ end }}
     <h1>{{ .Title | safeHTML }}</h1>
@@ -50,14 +50,15 @@
 {{/* Resolve the read-next post: explicit frontmatter first, then next in section */}}
 {{ $next := .NextInSection }}
 {{ with .Params.next }}
-  {{ $p := $.Site.GetPage (printf "/posts/%s" .) }}
+  {{ $slug := . }}
+  {{ $p := index (where $.Site.RegularPages "File.ContentBaseName" $slug) 0 }}
   {{ if $p }}{{ $next = $p }}{{ end }}
 {{ end }}
 {{ with $next }}
 <section class="read-next">
   <p class="read-next-label">Read next</p>
   <a href="{{ .RelPermalink }}" class="read-next-card">
-    {{ with .Params.category }}<span class="read-next-category">{{ . }}</span>{{ end }}
+    {{ with .CurrentSection.Title }}<span class="read-next-category">{{ . }}</span>{{ end }}
     <span class="read-next-title">{{ .Title | safeHTML }}</span>
     <span class="read-next-arrow">→</span>
   </a>

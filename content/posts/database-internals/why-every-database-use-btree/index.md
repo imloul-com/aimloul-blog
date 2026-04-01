@@ -3,7 +3,7 @@ title: "The Universal Blueprint:<br>Why Everything in Your Database is a B-Tree"
 subtitle: "From the physics of spinning platters to the geometry of NVMe flash, one data structure has dominated database storage for five decades. This is not a coincidence."
 date: 2026-03-29
 author: "Imloul Anas"
-category: "Database Internals"
+tags: ["b-tree", "indexing", "storage", "disk-io"]
 next: "the-forbidden-data-structure"
 draft: false
 math: true
@@ -142,7 +142,7 @@ Where *h* is the tree height, *f* is the fan-out, and *n* is the number of rows.
 
 **A B-tree on one billion rows requires at most 3-4 page reads to find any single row.** Even if every page read hits cold storage on an SSD, the entire lookup completes in under a millisecond.
 
-{{< diagram src="why-every-database-use-btree/btree" caption="Standard B-Tree: internal nodes hold routing keys and child pointers. Leaf nodes hold data pointers. Every path from root to leaf is the same length." >}}
+{{< diagram src="btree" caption="Standard B-Tree: internal nodes hold routing keys and child pointers. Leaf nodes hold data pointers. Every path from root to leaf is the same length." >}}
 
 This is why the B-tree doesn't just beat the BST. It renders the BST's disk-based performance so catastrophically worse that the comparison is almost unfair. The BST requires 30 page reads for 1 billion rows. The B-tree requires 3.
 
@@ -176,7 +176,7 @@ This separation produces two meaningful benefits. First, internal nodes become d
 Consider a query for all transactions between January 1 and January 31. With a pure B-tree, you'd descend to the first matching leaf, retrieve its data, then need to re-traverse the tree from the root to find the next matching node. With a B+ tree, you descend once, find the starting leaf, then follow the linked list forward through all matching leaves. One descent, then pure sequential I/O. This is why B+ trees dominate OLTP storage engines.
 {{< /callout >}}
 
-{{< diagram src="why-every-database-use-btree/bplus" caption="B+ Tree: internal nodes contain only routing keys. Leaf nodes contain all data pointers and are connected in a sorted linked list, enabling sequential range scans without re-traversal." >}}
+{{< diagram src="bplus" caption="B+ Tree: internal nodes contain only routing keys. Leaf nodes contain all data pointers and are connected in a sorted linked list, enabling sequential range scans without re-traversal." >}}
 
 ---
 

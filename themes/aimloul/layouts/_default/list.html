@@ -1,15 +1,22 @@
 {{ define "main" }}
-<div class="home-header">
-  <div class="home-logo">{{ .Site.Title }}</div>
-  {{ with .Site.Params.description }}
-  <p class="home-desc">{{ . }}</p>
+{{ $allPosts := .RegularPagesRecursive }}
+{{ $paginator := .Paginate ($allPosts.ByDate.Reverse) }}
+
+<header class="article-header">
+  <div class="eyebrow">Series</div>
+  <h1>{{ .Title }}</h1>
+  {{ with .Description }}
+  <p class="subtitle">{{ . }}</p>
   {{ end }}
-</div>
+  <div class="meta">
+    <span>{{ len $allPosts }} {{ if eq (len $allPosts) 1 }}post{{ else }}posts{{ end }}</span>
+  </div>
+</header>
 
 <div class="post-list">
-  {{ range .Pages.ByDate.Reverse }}
+  {{ range $paginator.Pages }}
   <a href="{{ .RelPermalink }}" class="post-card">
-    {{ with .Params.category }}
+    {{ with .CurrentSection.Title }}
     <span class="post-category">{{ . }}</span>
     {{ end }}
     <h2 class="post-title">{{ .Title | safeHTML }}</h2>
@@ -24,4 +31,13 @@
   </a>
   {{ end }}
 </div>
+
+<nav class="pagination-nav">
+  {{ if $paginator.HasPrev }}
+  <a href="{{ $paginator.Prev.URL }}" class="pagination-btn">← newer posts</a>
+  {{ else }}<span></span>{{ end }}
+  {{ if $paginator.HasNext }}
+  <a href="{{ $paginator.Next.URL }}" class="pagination-btn">older posts →</a>
+  {{ else }}<span></span>{{ end }}
+</nav>
 {{ end }}

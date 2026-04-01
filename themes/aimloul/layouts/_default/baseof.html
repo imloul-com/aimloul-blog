@@ -28,6 +28,8 @@
       <div class="site-header-row">
         {{ if or .IsHome (eq .Layout "archive") }}
         <a href="{{ "/" | relURL }}" class="site-name">{{ .Site.Title }}</a>
+        {{ else if .IsSection }}
+        <a href="{{ "/" | relURL }}" class="site-name">{{ .Site.Title }}</a>
         {{ else }}
         {{ block "nav-back" . }}<span></span>{{ end }}
         {{ end }}

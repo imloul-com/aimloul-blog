@@ -1,10 +1,20 @@
 {{ define "main" }}
-{{ $paginator := .Paginate ((where .Site.RegularPages "Type" "posts").ByDate.Reverse) }}
+{{ $posts := (where .Site.RegularPages "Type" "posts").ByDate.Reverse }}
+{{ $sections := (.Site.GetPage "/posts").Sections }}
+
+{{ if $sections }}
+<div class="tab-bar">
+  <button class="tab-btn is-active" data-tab="all">All</button>
+  {{ range $sections }}
+  <button class="tab-btn" data-tab="{{ .Title | urlize }}">{{ .Title }}</button>
+  {{ end }}
+</div>
+{{ end }}
 
 <div class="post-list">
-  {{ range $paginator.Pages }}
-  <a href="{{ .RelPermalink }}" class="post-card">
-    {{ with .Params.category }}
+  {{ range $posts }}
+  <a href="{{ .RelPermalink }}" class="post-card" data-section="{{ .CurrentSection.Title | urlize }}">
+    {{ with .CurrentSection.Title }}
     <span class="post-category">{{ . }}</span>
     {{ end }}
     <h2 class="post-title">{{ .Title | safeHTML }}</h2>
@@ -20,12 +30,31 @@
   {{ end }}
 </div>
 
-<nav class="pagination-nav">
-  {{ if $paginator.HasPrev }}
-  <a href="{{ $paginator.Prev.URL }}" class="pagination-btn">← newer posts</a>
-  {{ else }}<span></span>{{ end }}
-  {{ if $paginator.HasNext }}
-  <a href="{{ $paginator.Next.URL }}" class="pagination-btn">older posts →</a>
-  {{ else }}<span></span>{{ end }}
-</nav>
+{{ if $sections }}
+<script>
+  (function () {
+    var btns  = document.querySelectorAll('.tab-btn');
+    var cards = document.querySelectorAll('.post-card');
+
+    function activateTab(tab) {
+      btns.forEach(function (b) { b.classList.remove('is-active'); });
+      var active = document.querySelector('.tab-btn[data-tab="' + tab + '"]');
+      if (active) active.classList.add('is-active');
+      cards.forEach(function (card) {
+        card.classList.toggle('is-hidden', tab !== 'all' && card.dataset.section !== tab);
+      });
+    }
+
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () { activateTab(this.dataset.tab); });
+    });
+
+    var initTab = new URLSearchParams(location.search).get('tab');
+    if (initTab) {
+      activateTab(initTab);
+      history.replaceState(null, '', location.pathname);
+    }
+  })();
+</script>
+{{ end }}
 {{ end }}
