@@ -45,7 +45,7 @@ A B-tree augmented with one extra piece of data per internal node: **the exact c
 
 {{< diagram src="ost" caption="Order Statistics Tree: each internal node carries a subtree row count (orange). This enables O(log n) rank queries and is the source of all three problems." >}}
 
-Here is a simplified illustration of why this works: if the root node says its left subtree has 400,000 rows and you want row 500,000, you immediately know to go right and look for row 100,000 in the right subtree, skipping 400,000 rows in a single step. Repeat for each level of the tree (typically 3-4 levels in a production database) and you have found your row in just a handful of steps.
+Here is a simplified illustration of why this works: if the root node says its left subtree has 100,000 rows and you want row 170,000, you immediately know to go right and look for row 70,000 in the right subtree, skipping 100,000 rows in a single step. Repeat for each level of the tree (typically 3-4 levels in a production database) and you have found your row in just a handful of steps.
 
 The promise is compelling. The execution, however, collides with three pillars of how real databases work.
 
