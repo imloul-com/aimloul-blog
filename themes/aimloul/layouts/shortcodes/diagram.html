@@ -1,9 +1,10 @@
 {{ $src := .Get "src" }}
 {{ $caption := .Get "caption" }}
+{{ $alt := .Get "alt" | default $caption | default $src }}
 {{ $dir := strings.TrimPrefix "posts/" .Page.File.Dir }}
 {{ $dark  := resources.Get (printf "diagrams/%s%s-dark.svg"  $dir $src) }}
 {{ $light := resources.Get (printf "diagrams/%s%s-light.svg" $dir $src) }}
-<figure class="diagram">
+<figure class="diagram" role="img" aria-label="{{ $alt }}">
   {{ with $dark }}
   <div class="diagram-inner diagram-dark">{{ .Content | safeHTML }}</div>
   {{ end }}

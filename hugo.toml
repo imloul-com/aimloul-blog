@@ -3,6 +3,15 @@ languageCode = 'en-us'
 title = 'a.imloul'
 theme = 'aimloul'
 enableRobotsTXT = true
+enableGitInfo = true
+
+[related]
+  includeNewer = true
+  threshold = 50
+  toLower = false
+  [[related.indices]]
+    name = "tags"
+    weight = 100
 
 [taxonomies]
   tag = "tags"
@@ -14,6 +23,10 @@ enableRobotsTXT = true
   description = 'Writing about database internals, systems design, and backend engineering.'
   ogImage = '/og-image.svg'
   ogTheme = 'light'
+  giscusRepo = 'AnasImloul/aimloul-blog'
+  giscusRepoId = 'R_kgDOR1LvxQ'
+  giscusCategory = 'General'
+  giscusCategoryId = 'DIC_kwDOR1Lvxc4C53Ls'
 
 [markup]
   [markup.tableOfContents]

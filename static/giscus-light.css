@@ -1,0 +1,86 @@
+body {
+  background: transparent;
+  color: #1c1a16;
+}
+
+:root {
+  /* Canvas */
+  --color-canvas-default:           #f7f5f0;
+  --color-canvas-subtle:            #f0ede6;
+  --color-canvas-inset:             #ece9e2;
+  --color-canvas-overlay:           #ffffff;
+
+  /* Borders */
+  --color-border-default:           #d5d0c6;
+  --color-border-muted:             #e0dbd2;
+  --color-border-subtle:            rgba(213, 208, 198, 0.6);
+
+  /* Neutral */
+  --color-neutral-muted:            rgba(213, 208, 198, 0.4);
+  --color-neutral-emphasis-plus:    #4a4640;
+  --color-neutral-emphasis:         #7a756d;
+
+  /* Accent */
+  --color-accent-fg:                #c9501f;
+  --color-accent-emphasis:          #c9501f;
+  --color-accent-subtle:            rgba(201, 80, 31, 0.10);
+  --color-accent-muted:             rgba(201, 80, 31, 0.25);
+
+  /* Foreground */
+  --color-fg-default:               #1c1a16;
+  --color-fg-muted:                 #7a756d;
+  --color-fg-subtle:                #9a9590;
+  --color-fg-on-emphasis:           #ffffff;
+
+  /* Buttons */
+  --color-btn-bg:                   #f0ede6;
+  --color-btn-border:               #d5d0c6;
+  --color-btn-shadow:               0 0 transparent;
+  --color-btn-inset-shadow:         0 0 transparent;
+  --color-btn-hover-bg:             #e8e4dc;
+  --color-btn-hover-border:         #c0bab0;
+  --color-btn-active-bg:            #e0dcd4;
+  --color-btn-text:                 #1c1a16;
+  --color-btn-primary-bg:           #c9501f;
+  --color-btn-primary-border:       #b44419;
+  --color-btn-primary-text:         #ffffff;
+  --color-btn-primary-hover-bg:     #b44419;
+  --color-btn-primary-hover-border: #9e3a14;
+  --color-btn-primary-shadow:       0 0 transparent;
+
+  /* Inputs */
+  --color-input-bg:                 #f7f5f0;
+  --color-input-border:             #d5d0c6;
+  --color-input-disabled-bg:        rgba(240, 237, 230, 0.5);
+  --color-input-disabled-border:    #e0dbd2;
+
+  /* Social reactions */
+  --color-social-reaction-bg-reacted: rgba(201, 80, 31, 0.10);
+  --color-social-reaction-bg-hover:   rgba(201, 80, 31, 0.06);
+
+  /* Gray scale (light → dark) */
+  --color-scale-gray-0: #e8e6e0;
+  --color-scale-gray-1: #d8d5ce;
+  --color-scale-gray-2: #c8c5be;
+  --color-scale-gray-3: #b5b2aa;
+  --color-scale-gray-4: #9a9590;
+  --color-scale-gray-5: #7a756d;
+  --color-scale-gray-6: #5a5650;
+  --color-scale-gray-7: #3a3835;
+  --color-scale-gray-8: #2a2825;
+  --color-scale-gray-9: #1c1a16;
+}
+
+/* Direct overrides as safety net */
+input, textarea, select {
+  background-color: #f7f5f0 !important;
+  border-color: #d5d0c6 !important;
+  color: #1c1a16 !important;
+}
+input:focus, textarea:focus {
+  border-color: #c9501f !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(201, 80, 31, 0.15) !important;
+}
+a { color: #c9501f; }
+a:hover { color: #b44419; }

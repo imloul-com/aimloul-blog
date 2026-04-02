@@ -148,7 +148,59 @@
       var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
       document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('theme', next);
+      var giscusFrame = document.querySelector('iframe.giscus-frame');
+      if (giscusFrame) {
+        var container = document.getElementById('giscus-container');
+        var giscusTheme = container && (next === 'light' ? container.dataset.themeLight : container.dataset.themeDark);
+        if (giscusTheme) {
+          giscusFrame.contentWindow.postMessage(
+            { giscus: { setConfig: { theme: giscusTheme } } },
+            'https://giscus.app'
+          );
+        }
+      }
     });
+  </script>
+  <script>
+    (function () {
+      var container = document.getElementById('giscus-container');
+      if (!container) return;
+      var theme = localStorage.getItem('theme') ||
+        (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      var giscusTheme = theme === 'light' ? container.dataset.themeLight : container.dataset.themeDark;
+      var s = document.createElement('script');
+      s.src = 'https://giscus.app/client.js';
+      s.setAttribute('data-repo', container.dataset.repo);
+      s.setAttribute('data-repo-id', container.dataset.repoId);
+      s.setAttribute('data-category', container.dataset.category);
+      s.setAttribute('data-category-id', container.dataset.categoryId);
+      s.setAttribute('data-mapping', 'pathname');
+      s.setAttribute('data-strict', '0');
+      s.setAttribute('data-reactions-enabled', '1');
+      s.setAttribute('data-emit-metadata', '0');
+      s.setAttribute('data-input-position', 'bottom');
+      s.setAttribute('data-theme', giscusTheme);
+      s.setAttribute('data-lang', 'en');
+      s.setAttribute('crossorigin', 'anonymous');
+      s.async = true;
+      container.appendChild(s);
+    })();
+  </script>
+  <script>
+    (function () {
+      var btn = document.getElementById('copy-link-btn');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        navigator.clipboard.writeText(window.location.href).then(function () {
+          btn.classList.add('copied');
+          btn.setAttribute('aria-label', 'Copied!');
+          setTimeout(function () {
+            btn.classList.remove('copied');
+            btn.setAttribute('aria-label', 'Copy link');
+          }, 2000);
+        });
+      });
+    })();
   </script>
   <script>
     (function () {
@@ -205,6 +257,42 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');
     }
+  </script>
+  <script>
+    (function () {
+      var bar = document.getElementById('progress-bar');
+      var btn = document.getElementById('back-to-top');
+      if (!bar && !btn) return;
+      window.addEventListener('scroll', function () {
+        var scrollTop = window.scrollY;
+        var docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+        if (bar) bar.style.width = (docHeight > 0 ? (scrollTop / docHeight) * 100 : 0) + '%';
+        if (btn) btn.classList.toggle('is-visible', scrollTop > 300);
+      }, { passive: true });
+      if (btn) {
+        btn.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+    })();
+  </script>
+  <script>
+    (function () {
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var pre = btn.closest('.code-block') && btn.closest('.code-block').querySelector('pre');
+          if (!pre) return;
+          navigator.clipboard.writeText(pre.innerText).then(function () {
+            btn.classList.add('copied');
+            btn.setAttribute('aria-label', 'Copied!');
+            setTimeout(function () {
+              btn.classList.remove('copied');
+              btn.setAttribute('aria-label', 'Copy code');
+            }, 2000);
+          });
+        });
+      });
+    })();
   </script>
 </body>
 </html>

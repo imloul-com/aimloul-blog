@@ -1,6 +1,7 @@
 {{ define "nav-back" }}<a href="{{ "/" | relURL }}?tab={{ .CurrentSection.Title | urlize }}" class="nav-back">← {{ .CurrentSection.Title }}</a>{{ end }}
 
 {{ define "main" }}
+<div id="progress-bar" aria-hidden="true"></div>
 {{ if .TableOfContents }}
 <aside class="toc-sidebar" aria-label="On this page">
   <p class="toc-label">On this page</p>
@@ -47,12 +48,30 @@
 </div>
 {{ end }}
 
-{{/* Resolve the read-next post: explicit frontmatter first, then next in section */}}
+<div class="share-bar">
+  <span class="share-label">Share</span>
+  <div class="share-actions">
+    <a href="https://x.com/intent/tweet?text={{ .Title | urlquery }}&url={{ .Permalink | urlquery }}" target="_blank" rel="noopener noreferrer" class="share-btn" aria-label="Share on X">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M1 1.5L5.8 8L1 13H2.2L6.35 8.7L10 13H13L7.9 6.2L12.5 1.5H11.3L7.35 5.55L4 1.5H1Z" fill="currentColor"/></svg>
+    </a>
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ .Permalink | urlquery }}" target="_blank" rel="noopener noreferrer" class="share-btn" aria-label="Share on LinkedIn">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="1" width="3.2" height="3.2" rx="0.4" fill="currentColor"/><rect x="1" y="5.8" width="3.2" height="7.2" fill="currentColor"/><path d="M5.8 5.8H9V7.2C9.5 6.2 10.5 5.8 11.4 5.8C13 5.8 13 7.2 13 8.4V13H9.8V9.2C9.8 8.6 9.4 8.2 8.9 8.2C8.4 8.2 8 8.6 8 9.2V13H5.8V5.8Z" fill="currentColor"/></svg>
+    </a>
+    <button class="share-btn" id="copy-link-btn" aria-label="Copy link">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M5 9L9 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M7.5 3.5L8.8 2.2C9.8 1.2 11.3 1.2 12.3 2.2C13.3 3.2 13.3 4.7 12.3 5.7L11 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M6.5 10.5L5.2 11.8C4.2 12.8 2.7 12.8 1.7 11.8C0.7 10.8 0.7 9.3 1.7 8.3L3 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</div>
+
+{{/* Resolve the read-next post: explicit frontmatter first, then next in section, then related by tags */}}
 {{ $next := .NextInSection }}
 {{ with .Params.next }}
   {{ $slug := . }}
   {{ $p := index (where $.Site.RegularPages "File.ContentBaseName" $slug) 0 }}
   {{ if $p }}{{ $next = $p }}{{ end }}
+{{ end }}
+{{ if not $next }}
+  {{ $next = index (.Site.RegularPages.Related .) 0 }}
 {{ end }}
 {{ with $next }}
 <section class="read-next">
@@ -64,4 +83,24 @@
   </a>
 </section>
 {{ end }}
+
+{{ with .Site.Params.giscusRepo }}
+<div class="giscus-wrap"
+  id="giscus-container"
+  data-repo="{{ . }}"
+  data-repo-id="{{ $.Site.Params.giscusRepoId }}"
+  data-category="{{ $.Site.Params.giscusCategory }}"
+  data-category-id="{{ $.Site.Params.giscusCategoryId }}"
+  data-theme-dark="{{ $.Site.BaseURL }}giscus-dark.css"
+  data-theme-light="{{ $.Site.BaseURL }}giscus-light.css">
+  <p class="giscus-label">Comments</p>
+</div>
+{{ end }}
+
+<button id="back-to-top" aria-label="Back to top">
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <line x1="7" y1="12" x2="7" y2="2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    <polyline points="3,6 7,2 11,6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>
+</button>
 {{ end }}
