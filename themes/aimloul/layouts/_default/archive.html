@@ -11,7 +11,7 @@
   {{ $readTime := .Params.readTime }}
   {{ if not $readTime }}{{ $readTime = printf "%d min read" (div (add .WordCount 237) 238) }}{{ end }}
   {{ $posts = $posts | append (dict
-    "title"    .Title
+    "title"    (.Title | plainify)
     "url"      .RelPermalink
     "date"     (.Date.Format "Jan 2006")
     "tags"     $tags
@@ -51,7 +51,7 @@
     {{ if not $tags }}{{ $tags = slice }}{{ end }}
     {{ with .CurrentSection.Title }}{{ $tags = $tags | append . }}{{ end }}
     <tr class="archive-row" data-url="{{ .RelPermalink }}">
-      <td class="col-title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></td>
+      <td class="col-title"><a href="{{ .RelPermalink }}">{{ .Title | plainify }}</a></td>
       <td class="col-tags">{{ range $tags }}<span class="archive-tag" data-tag="{{ . }}">{{ . }}</span>{{ end }}</td>
       <td class="col-date">{{ .Date.Format "Jan 2006" }}</td>
       <td class="col-read">{{ partial "read-time.html" . }}</td>
