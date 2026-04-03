@@ -1744,6 +1744,10 @@ article hr {
 .status-badge.status-active { color: var(--good); border-color: var(--good); }
 .status-badge.status-wip { color: var(--accent); border-color: var(--accent); }
 .status-badge.status-archived { color: var(--text-dim); }
+.tool-card .status-badge {
+  display: inline-block;
+  width: fit-content;
+}
 
 /* ── TOOL CARDS ── */
 .tool-list {
@@ -1757,13 +1761,20 @@ article hr {
   display: flex;
   align-items: center;
   gap: 20px;
-  padding: 24px 0;
+  padding: 20px 0;
+  min-height: 0;
   border-bottom: 1px solid var(--border);
   text-decoration: none;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-.tool-card-left { flex: 1; }
+.tool-card-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
 
 .tool-title {
   font-family: var(--font-serif);
@@ -1780,6 +1791,7 @@ article hr {
   color: var(--text-dim);
   font-weight: 300;
 }
+
 
 .tool-card:hover .tool-title { color: var(--accent); }
 .tool-card:hover .hub-section-arrow {
