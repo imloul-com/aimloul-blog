@@ -1,0 +1,6 @@
+{
+  "routeKey": "portfolio",
+  "prefix": "/",
+  "rewritePrefixTo": "/",
+  "projectName": "portfolio"
+}

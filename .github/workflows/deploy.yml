@@ -31,6 +31,15 @@ jobs:
           fi
           echo "name=$project_name" >> "$GITHUB_OUTPUT"
 
+      - name: Validate route-config matches wrangler.toml
+        run: |
+          wrangler_name=$(awk -F'"' '/^name[[:space:]]*=/ { print $2; exit }' wrangler.toml)
+          config_name=$(jq -r '.projectName' route-config.json)
+          if [ "$wrangler_name" != "$config_name" ]; then
+            echo "MISMATCH: wrangler.toml name='$wrangler_name' vs route-config.json projectName='$config_name'" >&2
+            exit 1
+          fi
+
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v3
         with:
@@ -98,12 +107,24 @@ jobs:
       - name: Post preview URL to PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
         with:
           script: |
-            const body = `### Preview Deployment\n\nDeployed to: ${process.env.DEPLOYMENT_URL || 'Check Cloudflare Pages dashboard for preview URL'}\n\n*Branch: \`${{ steps.branch.outputs.name }}\`*`;
+            const url = process.env.DEPLOYMENT_URL || 'unavailable';
+            const body = `### Preview Deployment\n\nDeployed to: ${url}\n\n*Branch: \`${{ steps.branch.outputs.name }}\`*`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
               body,
             });
+
+      - name: Trigger router redeploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.INFRA_DISPATCH_TOKEN }}
+        run: |
+          gh api repos/AnasImloul/cloudflare-infra/dispatches \
+            -f event_type=app-deployed \
+            -f "client_payload[app]=${{ github.repository }}"
