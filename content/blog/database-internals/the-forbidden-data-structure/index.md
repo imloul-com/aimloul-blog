@@ -1,5 +1,5 @@
 ---
-title: "The Forbidden Data Structure:<br>Why Databases Refuse to Use Order Statistics Trees"
+title: "The Forbidden Data Structure:<br>Why Databases Refuse to Use Order Statistics B-Trees"
 subtitle: "An augmented B-tree that makes pagination O(log n) sounds like a perfect fix. So why has every major database engine silently rejected it for decades?"
 date: 2026-03-30
 author: "Imloul Anas"
@@ -102,7 +102,7 @@ For cases where you only need a rough total (such as "about 2.3 million records"
 
 ## The "Hot Root" Bottleneck: A Concurrency Disaster
 
-Even if we invented a version of MVCC that could tolerate stored counts, Order Statistics Trees would still be rejected. This time for a reason that hits even harder in practice: they are fundamentally incompatible with how modern databases achieve high concurrency.
+Even if we invented a version of MVCC that could tolerate stored counts, Order Statistics B-Trees would still be rejected. This time for a reason that hits even harder in practice: they are fundamentally incompatible with how modern databases achieve high concurrency.
 
 Modern database engines use a variant of the **B-link tree** architecture (covered in detail in the previous article), which adds sideways pointers between sibling nodes. This allows threads to traverse the tree without holding locks for the entire traversal. A write operation only needs to lock the specific leaf it is modifying, and then it is done. The rest of the tree remains fully available to other threads.
 
@@ -120,7 +120,7 @@ Because every single insert, update, or delete in the entire database must event
 
 ## Write Amplification: One Insert, Five Disk Writes
 
-The third problem is physical: Order Statistics Trees multiply the amount of work your storage hardware must do for every write.
+The third problem is physical: Order Statistics B-Trees multiply the amount of work your storage hardware must do for every write.
 
 {{< definition icon="I/O" term="Write Amplification" >}}
 The ratio between how much data is actually written to disk versus how much data you logically changed. All databases have some write amplification (changing a 30-byte row means writing a full 4 KB page to disk), but good architecture keeps it localized and predictable.
@@ -209,7 +209,7 @@ If your use case requires exact, always-current counts that are cheap to query, 
 ---
 
 {{< conclusion title="A Deliberate, Brilliant Trade-off" label="Conclusion" >}}
-The absence of Order Statistics Trees in your favorite relational database is not a failure of imagination. It is a testament to how deeply the constraints of concurrency, isolation, and physical hardware shape what is architecturally possible.
+The absence of Order Statistics B-Trees in your favorite relational database is not a failure of imagination. It is a testament to how deeply the constraints of concurrency, isolation, and physical hardware shape what is architecturally possible.
 
 Augmenting every B-tree node with a subtree count looks like a free lunch: a small addition that buys O(log n) counting and pagination for free. But that integer cascades upward on every write, violates transactional isolation under MVCC (a correctness problem with no workaround), serializes all writes through the root (a scalability problem that gets worse as hardware improves), and multiplies physical I/O by the tree's depth (a cost that compounds across every write, every replica, and every SSD in your cluster).
 
