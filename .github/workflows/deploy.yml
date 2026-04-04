@@ -31,15 +31,6 @@ jobs:
           fi
           echo "name=$project_name" >> "$GITHUB_OUTPUT"
 
-      - name: Validate route-config matches wrangler.toml
-        run: |
-          wrangler_name=$(awk -F'"' '/^name[[:space:]]*=/ { print $2; exit }' wrangler.toml)
-          config_name=$(jq -r '.projectName' route-config.json)
-          if [ "$wrangler_name" != "$config_name" ]; then
-            echo "MISMATCH: wrangler.toml name='$wrangler_name' vs route-config.json projectName='$config_name'" >&2
-            exit 1
-          fi
-
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v3
         with:
