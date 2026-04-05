@@ -2,9 +2,9 @@ name: Deploy Hugo to Cloudflare Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
   workflow_dispatch:
 
 concurrency:
@@ -30,6 +30,20 @@ jobs:
             exit 1
           fi
           echo "name=$project_name" >> "$GITHUB_OUTPUT"
+
+      - name: Determine deploy environment
+        id: deploy_env
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "env=preview" >> "$GITHUB_OUTPUT"
+            echo "project_name=${{ steps.project.outputs.name }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref }}" = "refs/heads/dev" ]; then
+            echo "env=dev" >> "$GITHUB_OUTPUT"
+            echo "project_name=${{ steps.project.outputs.name }}-dev" >> "$GITHUB_OUTPUT"
+          else
+            echo "env=prod" >> "$GITHUB_OUTPUT"
+            echo "project_name=${{ steps.project.outputs.name }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v3
@@ -60,7 +74,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_PROJECT_NAME: ${{ steps.project.outputs.name }}
+          CLOUDFLARE_PROJECT_NAME: ${{ steps.deploy_env.outputs.project_name }}
         run: |
           status_code=$(curl -sS -o /tmp/cf-pages-project.json -w "%{http_code}" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
@@ -79,12 +93,10 @@ jobs:
 
       - name: Create Pages project
         if: steps.check_pages_project.outputs.exists == 'false'
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.80.0"
-          command: pages project create ${{ steps.project.outputs.name }} --production-branch main
+        run: |
+          echo "::error::Missing Terraform-managed Pages project: ${{ steps.deploy_env.outputs.project_name }}"
+          echo "::error::Run/apply cloudflare-infra Terraform first."
+          exit 1
 
       - name: Determine deploy branch
         id: branch
@@ -92,7 +104,7 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "name=${{ github.head_ref }}" >> "$GITHUB_OUTPUT"
           else
-            echo "name=main" >> "$GITHUB_OUTPUT"
+            echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Deploy to Cloudflare Pages
@@ -102,7 +114,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4.80.0"
-          command: pages deploy public --project-name ${{ steps.project.outputs.name }} --branch ${{ steps.branch.outputs.name }} --commit-dirty=true
+          command: pages deploy public --project-name ${{ steps.deploy_env.outputs.project_name }} --branch ${{ steps.branch.outputs.name }} --commit-dirty=true
 
       - name: Post preview URL to PR
         if: github.event_name == 'pull_request'
@@ -121,12 +133,14 @@ jobs:
             });
 
       - name: Post-deploy smoke test
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          PAGES_PROJECT_NAME: ${{ steps.deploy_env.outputs.project_name }}
         run: |
           sleep 5
-          url="${DEPLOYMENT_URL:-https://imloul.com/}"
+          default_url="https://${PAGES_PROJECT_NAME}.pages.dev/"
+          url="${DEPLOYMENT_URL:-$default_url}"
           status=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "$url" || echo "000")
           echo "$url -> HTTP $status"
           if [ "$status" -lt 200 ] || [ "$status" -ge 400 ]; then
@@ -136,10 +150,16 @@ jobs:
           echo "Smoke test passed"
 
       - name: Trigger router redeploy
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
         env:
           GH_TOKEN: ${{ secrets.INFRA_DISPATCH_TOKEN }}
         run: |
+          if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
+            deploy_env=dev
+          else
+            deploy_env=prod
+          fi
           gh api repos/AnasImloul/cloudflare-infra/dispatches \
             -f event_type=app-deployed \
-            -f "client_payload[app]=${{ github.repository }}"
+            -f "client_payload[app]=${{ github.repository }}" \
+            -f "client_payload[environment]=$deploy_env"
