@@ -70,7 +70,7 @@ enableGitInfo = true
     endLevel = 3
     ordered = false
   [markup.highlight]
-    noClasses = true
+    noClasses = false
     style = 'nord'
     lineNos = false
     tabWidth = 2
