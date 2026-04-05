@@ -7,15 +7,13 @@ tags: ["skip-list", "probabilistic", "redis", "sorted-sets"]
 draft: false
 ---
 
-There is a moment, when you first read the Redis source code, that stops you cold.
+If you ever trace how `ZADD` works in Redis, follow the call stack into the sorted set implementation, you expect to land on a balanced tree or some well-known variant. What you find instead is a function called `zslInsert` with a loop that calls `random()` to decide how tall to build each new node.
 
-You are tracing how a `ZADD` command works. You follow the call stack down through the sorted set implementation, expecting to find something familiar: a balanced tree, a heap, perhaps a B-tree variant. Instead, you find a function called `zslInsert`, and inside it, a loop that calls `random()` to decide how tall to make the new node.
-Go ahead i
-A production database. Handling millions of operations per second. Making structural decisions with a random number generator.
+Redis. The database that half the internet runs on. Deciding the shape of its index with a random number generator.
 
-Your first instinct is that this must be a quirk, a shortcut taken somewhere unimportant. But the more you read, the more you realize it is not a shortcut at all. It is a deliberate, mathematically principled design choice that trades the rigid guarantees of a balanced tree for something more valuable in practice: simplicity, cache efficiency, and lock-free concurrency that scales almost linearly with core count.
+My first reaction was that I'd misread something. Then that it must be isolated to some edge case. But the more I dug, the clearer it became: this was deliberate. Not a shortcut, a tradeoff. One that gives up the deterministic guarantees of a balanced tree in exchange for simpler code, better cache behavior, and concurrency that scales well under real load.
 
-That structure is the **skip list**. And once you understand why it works, you will never look at a sorted index the same way again.
+That structure is the **skip list**. And it's worth understanding properly.
 
 ---
 
