@@ -32,7 +32,7 @@ Redis sorted sets (`ZSET`) are not a simple key-value store. They are a fully or
 
 The combination is the hard part. A sorted array handles range scans but needs $O(n)$ to insert. A hash map gives $O(1)$ lookup but has no ordering. A binary heap inserts in $O(\log n)$ but can't do range queries without scanning everything.
 
-You need $O(\log n)$ point operations *and* $O(\log n + k)$ range scans. The textbook answer is a balanced binary search tree: a red-black tree, an AVL tree, or a B-tree. These work, but they carry costs that matter in Redis's context, and those costs are what the skip list was designed to avoid.
+You need $O(\log n)$ point operations *and* $O(\log n + k)$ range scans (where $k$ is the number of results returned). The textbook answer is a balanced binary search tree: a red-black tree, an AVL tree, or a B-tree. These work, but they carry costs that matter in Redis's context, and those costs are what the skip list was designed to avoid.
 
 ---
 
@@ -47,7 +47,7 @@ So why doesn't Redis use one?
 The algorithmic complexity is essentially the same. The difference is in implementation complexity, memory layout, and concurrency.
 
 {{< definition icon="RBT" term="Red-Black Tree" >}}
-A self-balancing binary search tree where every node is colored red or black according to invariants that guarantee the tree never becomes more than twice as tall as it needs to be. Insertion and deletion trigger color changes and rotations to restore those invariants. The logic is correct but notoriously difficult to implement and reason about under concurrency. [Wikipedia](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree)
+A self-balancing binary search tree that guarantees $O(\log n)$ operations by enforcing structural rules after every insert and delete. Correct, but hard to implement and harder to make concurrent. [Wikipedia](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree)
 {{< /definition >}}
 
 When you insert into a red-black tree, the rotations and recoloring can touch nodes far from the insertion point, sometimes cascading all the way to the root. To insert safely under concurrency, you either lock the entire tree (serializing all writes) or implement a complex lock-coupling protocol. Most implementations take the easy path and use a coarse-grained lock.
@@ -56,7 +56,7 @@ When you insert into a red-black tree, the rotations and recoloring can touch no
 Redis itself is single-threaded for command processing, so it sidesteps this directly. But the lesson generalizes: systems like LevelDB, RocksDB, and many in-memory databases that need concurrent writes have found balanced trees painful to make lock-free. The skip list has a natural concurrent variant that only locks a small, bounded set of nodes per operation.
 {{< /callout >}}
 
-There is a second problem: memory access patterns. A red-black tree node holds left, right, and parent pointers, a color bit, and the key, roughly 40 bytes of overhead on a 64-bit system. Worse, nodes are individually heap-allocated and scattered across memory. A traversal that visits 20 nodes likely incurs 20 cache misses, each pointer dereference landing on a different cache line.
+There is a second problem: memory access patterns. A red-black tree node holds left, right, and parent pointers, a color bit, and the key, roughly 40 bytes of overhead on a 64-bit system. Worse, nodes are individually heap-allocated and scattered across memory. A traversal that visits 20 nodes likely incurs 20 cache misses. Each pointer dereference lands on a different cache line (the 64-byte chunk of memory the CPU fetches in one shot), so following a pointer often means waiting for a fresh memory fetch.
 
 The skip list does not fully solve this, but its structure makes cache behavior more predictable in practice.
 
@@ -76,7 +76,7 @@ Now add a third layer that skips half the second. And a fourth. If each layer sk
 A probabilistic data structure built as a hierarchy of sorted linked lists. The bottom layer (level 0) contains every element. Each higher layer contains a random subset of the layer below, where each element is independently promoted with probability p (typically 0.25 or 0.5). Searches descend through the layers, using higher layers to skip large portions and lower layers to refine the position.
 {{< /definition >}}
 
-The word "random" is doing critical work here. A balanced tree forces balance through explicit rotations after every insert or delete. A skip list achieves approximate balance by having each node decide its own height with a coin flip. No rebalancing is ever needed. The randomness guarantees that, with high probability, the height distribution across the structure approximates what a perfectly balanced tree would look like.
+The word "random" is doing critical work here. A balanced tree forces balance through explicit rotations after every insert or delete. A skip list achieves approximate balance by having each node decide its own height with a biased coin flip (a random draw where the probability of "heads" is p, not necessarily 50/50). No rebalancing is ever needed. The randomness guarantees that, with high probability, the height distribution across the structure approximates what a perfectly balanced tree would look like.
 
 {{< callout title="What 'with high probability' actually means" type="info" >}}
 For a skip list with $n$ elements and promotion probability $p = 0.5$, the probability that the maximum height exceeds $3\log_2 n$ is at most $1/n$. With one million elements, the chance of pathological height is less than one in a million per operation. In practice, skip lists handle billions of operations in production without ever hitting worst-case behavior.
@@ -122,7 +122,7 @@ func search(list *SkipList, target int) *Node {
     for node.next[level] != nil && node.next[level].key < target {
       node = node.next[level] // advance along this level
     }
-    // next node at this level would overshoot — drop down
+    // overshoots: drop down
   }
   node = node.next[0]
   if node != nil && node.key == target {
@@ -134,9 +134,13 @@ func search(list *SkipList, target int) *Node {
 
 ### Insert
 
-Insert starts with a search, but along the way it records the last node visited at each level in an `update` array. These are the nodes whose forward pointers will change.
+Insert starts with a search, but along the way it records the last node visited at each level in an `update` array: a list of predecessors, one per level, whose forward pointers will need to be rewired to include the new node.
 
-Then the coin flip. The new node's height is chosen by repeatedly flipping a biased coin (probability p). Each heads promotes it one level higher. With p = 0.25, the expected height is 1.33 levels.
+Then the coin flip. The new node's height is chosen by repeatedly flipping a biased coin (probability p): each heads promotes it one level higher, each tails stops. The expected height follows from the geometric series:
+
+$$E[\text{height}] = \sum_{k=0}^{\infty} p^k = \frac{1}{1-p}$$
+
+With $p = 0.25$, that's $\frac{1}{0.75} \approx 1.33$ levels on average.
 
 The new node is then spliced in at every level up to its height, using the `update` array to rewire the forward pointers. No rotations. No recoloring. No cascade. The insert touches only the nodes in the `update` array.
 
@@ -202,10 +206,10 @@ func delete(list *SkipList, key int) bool {
 
 Redis doesn't use a skip list for every sorted set. Small ones (under 128 members by default, or members exceeding 64 bytes) use a **listpack**, a compact encoding that stores everything sequentially in contiguous memory. Faster to scan, less memory.
 
-Once a sorted set grows past that threshold, Redis switches to a dual structure.
+Once a sorted set grows past that threshold, Redis automatically converts it in place to the skip list structure, transparently, on the write that crosses the limit.
 
 {{< definition icon="ZS" term="Redis zskiplist" >}}
-Redis's skip list implementation, defined in `t_zset.c`. Each node stores the member string, its floating-point score, and a backward pointer for reverse traversal, alongside the forward pointer array. Sorted primarily by score, secondarily by lexicographic order of the member string.
+Redis's skip list implementation, defined in `t_zset.c`. Each node stores the member string, its floating-point score, and a backward pointer for reverse traversal, alongside the forward pointer array. Sorted primarily by score, secondarily by lexicographic order of the member string, so two members with identical scores still have a stable, deterministic ordering.
 {{< /definition >}}
 
 {{< definition icon="ZD" term="Redis zset (the dual structure)" >}}
@@ -263,7 +267,7 @@ With the structure understood, here's how it compares:
     <tr>
       <td>Rank lookup</td>
       <td><span class="tag good">$O(\log n)$</span></td>
-      <td><span class="tag neutral">$O(\log n)$ with augmentation</span></td>
+      <td><span class="tag good">$O(\log n)$ with augmentation</span></td>
       <td><span class="tag good">$O(\log n)$ with span augmentation</span></td>
     </tr>
     <tr>
@@ -300,7 +304,7 @@ Spans are maintained during inserts and deletes by adjusting values in the `upda
 The result: `ZRANK` runs in $O(\log n)$ with no extra data structure and no base-layer scan. It's a clean example of augmenting a traversal structure with per-node metadata to unlock a new query type at minimal cost.
 
 {{< callout title="Connection to Order Statistics Trees" type="info" >}}
-Span augmentation is conceptually identical to subtree counts in an Order Statistics Tree: both record "how many elements are behind this pointer" for $O(\log n)$ rank queries. The difference is update cost. In an OST, count updates cascade to the root. In the skip list, span updates are confined to the update array nodes, which were already being modified anyway.
+If you're familiar with augmented BSTs: span augmentation is conceptually identical to subtree counts in an Order Statistics Tree. Both record "how many elements are behind this pointer" to answer rank queries in $O(\log n)$. The practical difference is update cost. In an OST, count updates cascade to the root on every insert. In the skip list, span updates are confined to the update array nodes, which were already being modified anyway, so there's no extra traversal cost.
 {{< /callout >}}
 
 ---
@@ -323,7 +327,7 @@ The update array has at most $O(\log n)$ entries, all identified during the sear
 No operation triggers unbounded structural changes. The worst case for any insert or delete is bounded by the node's height, which is logarithmic with high probability.
 {{< /pillar >}}
 {{< pillar num="03" title="Lock-Free Variants" >}}
-The bounded modification footprint enables lock-free implementations using compare-and-swap. Java's `ConcurrentSkipListMap` uses this approach, achieving near-linear throughput scaling with thread count.
+The bounded modification footprint enables lock-free implementations using compare-and-swap, a CPU instruction that atomically updates a pointer only if it still holds an expected value. Java's `ConcurrentSkipListMap` uses this approach, achieving near-linear throughput scaling with thread count.
 {{< /pillar >}}
 {{< /pillars >}}
 
@@ -387,12 +391,12 @@ Now you can reason about the performance of the commands you already use.
 
 **`ZRANK` is $O(\log n)$ thanks to span augmentation.** Without spans, this would be an $O(n)$ base-layer scan. The span values accumulated during descent give the exact rank as a byproduct.
 
-{{< codeblock label="Efficient — $O(\log n + k)$ range scan" labeltype="good" lang="redis" complexity="✓ Skip list descends to the score boundary in $O(\log n)$, then walks the base layer for $k$ results. Cost scales with the result set, not the total member count." complexitytype="good" >}}
+{{< codeblock label="Efficient: $O(\log n + k)$ range scan" labeltype="good" lang="bash" complexity="✓ Skip list descends to the score boundary in $O(\log n)$, then walks the base layer for $k$ results. Cost scales with the result set, not the total member count." complexitytype="good" >}}
 -- Return the top 100 players with scores between 4000 and 5000
 ZRANGEBYSCORE leaderboard 4000 5000 LIMIT 0 100
 {{< /codeblock >}}
 
-{{< codeblock label="Avoid on large sets — $O(n)$" labeltype="bad" lang="redis" complexity="⚠ Without a score or rank bound, Redis must walk the entire base layer. On a set with millions of members, this will block the event loop." complexitytype="bad" >}}
+{{< codeblock label="Avoid on large sets: $O(n)$" labeltype="bad" lang="bash" complexity="⚠ Without a score or rank bound, Redis must walk the entire base layer. On a set with millions of members, this will block the event loop." complexitytype="bad" >}}
 -- Returns every member in the set, sorted by score
 -- Catastrophic on large sorted sets
 ZRANGE leaderboard 0 -1 WITHSCORES
