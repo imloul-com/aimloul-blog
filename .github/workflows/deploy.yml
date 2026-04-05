@@ -79,3 +79,21 @@ jobs:
           sha_tag="sha-${short_sha}"
           oras push "${image}:${channel_tag}" release/site.tar.gz:application/vnd.myportfolio.static.layer.v1+tar
           oras push "${image}:${sha_tag}" release/site.tar.gz:application/vnd.myportfolio.static.layer.v1+tar
+
+      - name: Trigger infra deploy for published channel
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+        env:
+          GH_TOKEN: ${{ secrets.INFRA_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
+            target_env="dev"
+          else
+            target_env="prod"
+          fi
+
+          gh api repos/imloul-com/cloudflare-infra/dispatches \
+            -f event_type=app-published \
+            -f "client_payload[app]=${GITHUB_REPOSITORY}" \
+            -f "client_payload[environment]=${target_env}" \
+            -f "client_payload[version_override]="
