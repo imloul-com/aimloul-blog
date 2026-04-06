@@ -50,6 +50,8 @@ The algorithmic complexity is essentially the same. The difference is in impleme
 A self-balancing binary search tree that guarantees $O(\log n)$ operations by enforcing structural rules after every insert and delete. Correct, but hard to implement and harder to make concurrent. [Wikipedia](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree)
 {{< /definition >}}
 
+{{< diagram src="redblacktree" caption="Red–black tree at a glance: a binary search tree whose nodes are colored red or black so the tree stays approximately balanced (same black-node count on every path from the root, no two consecutive reds, and similar rules). Dark nodes are black, bright nodes are red. For the full invariant list and history, see the Wikipedia article linked in the definition above." >}}
+
 When you insert into a red-black tree, the rotations and recoloring can touch nodes far from the insertion point, sometimes cascading all the way to the root. To insert safely under concurrency, you either lock the entire tree (serializing all writes) or implement a complex lock-coupling protocol. Most implementations take the easy path and use a coarse-grained lock.
 
 {{< callout title="The concurrency problem is not theoretical" type="error" >}}
@@ -90,20 +92,13 @@ For a skip list with $n$ elements and promotion probability $p = 0.5$, the proba
 
 Instead of left and right child pointers, each skip list node contains a **tower** of forward pointers, one per level it participates in. A node at level 3 has three forward pointers: one for each level, each pointing to the next node at that level.
 
-{{< codeblock label="Skip List internals" labeltype="neutral" lang="txt">}}
-Level 3: head --------------------------------> [42] -----------------> NULL
-Level 2: head ----------------> [17] ---------> [42] ---------> [61] -> NULL
-Level 1: head -> [7] ---------> [17] -> [29] -> [42] ---------> [61] -> NULL
-Level 0: head -> [7] -> [12] -> [17] -> [29] -> [42] -> [55] -> [61] -> NULL
-{{< /codeblock >}}
+{{< diagram src="skiplist" caption="Skip List: the bottom layer contains every element. Each higher layer is a probabilistic subset of the layer below. Searches use higher layers to skip large portions of the list, dropping down as they approach the target." >}}
 
 Searching for 42: start at the top level of the head node. At level 3, the next node is 42, done. Searching for 55: advance to 42 at level 3, next is NULL, drop to level 2, next is 61 (overshoots), drop to level 1, 61 again, drop to level 0, find 55. The higher levels act as an express lane, skipping large chunks of the list in a single pointer jump.
 
 {{< definition icon="FP" term="Forward Pointer Array" >}}
 Each skip list node stores an array of next-pointers, one per level. A node at height h has h forward pointers. With $p = 0.25$, the expected number of forward pointers per node is $1/(1-0.25) = 1.33$, so the average node is only slightly larger than a regular linked list node.
 {{< /definition >}}
-
-{{< diagram src="skiplist" caption="Skip List: the bottom layer contains every element. Each higher layer is a probabilistic subset of the layer below. Searches use higher layers to skip large portions of the list, dropping down as they approach the target." >}}
 
 ---
 

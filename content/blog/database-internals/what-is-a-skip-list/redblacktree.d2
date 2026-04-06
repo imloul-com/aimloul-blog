@@ -1,0 +1,97 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+
+# D2 0.7.1: ELK spacing, diagram --pad, and elk.padding are not expressible in the .d2 source. They live in redblacktree.d2.opts; `make diagrams` passes them (and rebuilds when that file changes).
+
+direction: down
+
+classes: {
+  rb_black: {
+    width: 52
+    height: 52
+    style: {
+      fill: "#2a2a2e"
+      stroke: "#111"
+      font-color: "#f4f4f5"
+      bold: true
+      border-radius: 0
+    }
+  }
+  rb_red: {
+    width: 52
+    height: 52
+    style: {
+      fill: "#b91c1c"
+      stroke: "#7f1d1d"
+      font-color: "#fef2f2"
+      bold: true
+      border-radius: 0
+    }
+  }
+}
+
+# Full-height BST (keys 1–15): deeper tree → ELK spreads a wide last row while staying top-down.
+# Valid red–black coloring: black root and leaves, red internal children under black parents, uniform black height.
+n8: "8" {
+  class: rb_black
+}
+n4: "4" {
+  class: rb_black
+}
+n12: "12" {
+  class: rb_black
+}
+n2: "2" {
+  class: rb_red
+}
+n6: "6" {
+  class: rb_red
+}
+n10: "10" {
+  class: rb_red
+}
+n14: "14" {
+  class: rb_red
+}
+n1: "1" {
+  class: rb_black
+}
+n3: "3" {
+  class: rb_black
+}
+n5: "5" {
+  class: rb_black
+}
+n7: "7" {
+  class: rb_black
+}
+n9: "9" {
+  class: rb_black
+}
+n11: "11" {
+  class: rb_black
+}
+n13: "13" {
+  class: rb_black
+}
+n15: "15" {
+  class: rb_black
+}
+
+n8 -> n4
+n8 -> n12
+n4 -> n2
+n4 -> n6
+n12 -> n10
+n12 -> n14
+n2 -> n1
+n2 -> n3
+n6 -> n5
+n6 -> n7
+n10 -> n9
+n10 -> n11
+n14 -> n13
+n14 -> n15
