@@ -90,20 +90,85 @@ jobs:
           owner: imloul-com
           repositories: cloudflare-infra
 
-      - name: Trigger infra deploy for published channel
+      # Requires that the `bump-version-tool` GHCR package is either public,
+      # or has read access granted to this repository under
+      # github.com/orgs/imloul-com/packages/container/bump-version-tool/settings
+      # (Manage Actions access → Add Repository).
+      - name: Pull bump_version tool from GHCR
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+        run: |
+          set -euo pipefail
+          mkdir -p .bump-tool
+          cd .bump-tool
+          oras pull ghcr.io/imloul-com/bump-version-tool:latest
+          tar -xzf bump-version.tar.gz
+          chmod +x bump_version
+
+      - name: Pin published SHA into cloudflare-infra/main
         if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
         env:
           GH_TOKEN: ${{ steps.infra_token.outputs.token }}
+          APP_ID: aimloul-blog
         run: |
           set -euo pipefail
+
           if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
             target_env="dev"
           else
             target_env="prod"
           fi
+          short_sha="${GITHUB_SHA::12}"
+          new_version="sha-${short_sha}"
 
-          gh api repos/imloul-com/cloudflare-infra/dispatches \
-            -f event_type=app-published \
-            -f "client_payload[app]=${GITHUB_REPOSITORY}" \
-            -f "client_payload[environment]=${target_env}" \
-            -f "client_payload[version_override]="
+          workdir="$(mktemp -d)"
+          git clone \
+            "https://x-access-token:${GH_TOKEN}@github.com/imloul-com/cloudflare-infra.git" \
+            "${workdir}"
+          cd "${workdir}"
+          git config user.name  "imloul-com-deploy-bot[bot]"
+          git config user.email "deploy-bot@users.noreply.github.com"
+
+          bump_bin="${GITHUB_WORKSPACE}/.bump-tool/bump_version"
+
+          # Retry loop: a sibling app may push between our fetch and push.
+          # On non-fast-forward we reset to the new origin/main and re-bump.
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+
+            set +e
+            output="$("${bump_bin}" \
+              --app   "${APP_ID}" \
+              --env   "${target_env}" \
+              --version "${new_version}" \
+              --apps-yaml worker/apps.yaml)"
+            rc=$?
+            set -e
+            echo "${output}"
+            if [ $rc -ne 0 ]; then
+              echo "bump_version failed (rc=$rc)" >&2
+              exit $rc
+            fi
+
+            if [[ "${output}" == no-op:* ]]; then
+              echo "apps.yaml already pinned to ${new_version}; nothing to push."
+              exit 0
+            fi
+
+            git add worker/apps.yaml
+            commit_msg="$(printf 'deploy(%s): pin %s to %s\n\nSource: %s@%s\nRun: %s/%s/actions/runs/%s\n' \
+              "${APP_ID}" "${target_env}" "${new_version}" \
+              "${GITHUB_REPOSITORY}" "${GITHUB_SHA}" \
+              "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" "${GITHUB_RUN_ID}")"
+            git commit -m "${commit_msg}"
+
+            if git push origin main; then
+              echo "pushed bump on attempt ${attempt}"
+              exit 0
+            fi
+            echo "push failed on attempt ${attempt}; refetching and retrying"
+            sleep 2
+          done
+
+          echo "exhausted retries pushing bump to cloudflare-infra/main" >&2
+          exit 1
