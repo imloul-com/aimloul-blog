@@ -80,10 +80,20 @@ jobs:
           oras push "${image}:${channel_tag}" release/site.tar.gz:application/vnd.myportfolio.static.layer.v1+tar
           oras push "${image}:${sha_tag}" release/site.tar.gz:application/vnd.myportfolio.static.layer.v1+tar
 
+      - name: Mint cloudflare-infra installation token
+        id: infra_token
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.DEPLOY_BOT_APP_ID }}
+          private-key: ${{ secrets.DEPLOY_BOT_PRIVATE_KEY }}
+          owner: imloul-com
+          repositories: cloudflare-infra
+
       - name: Trigger infra deploy for published channel
         if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
         env:
-          GH_TOKEN: ${{ secrets.INFRA_DISPATCH_TOKEN }}
+          GH_TOKEN: ${{ steps.infra_token.outputs.token }}
         run: |
           set -euo pipefail
           if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then

@@ -2,8 +2,20 @@
 {{ $caption := .Get "caption" }}
 {{ $alt := .Get "alt" | default $caption | default $src }}
 {{ $dir := strings.TrimPrefix "blog/" .Page.File.Dir }}
-{{ $dark  := resources.Get (printf "diagrams/%s%s-dark.svg"  $dir $src) }}
-{{ $light := resources.Get (printf "diagrams/%s%s-light.svg" $dir $src) }}
+
+{{/*
+  Diagram sources (first match wins per theme):
+  1. Page bundle next to index.md: {src}_dark.svg / {src}_light.svg (underscore)
+  2. Same folder: {src}-dark.svg / {src}-light.svg (hyphen)
+  3. Generated from D2: assets/diagrams/{dir}{src}-dark.svg and -light.svg (make diagrams)
+*/}}
+{{ $bundleDark := or (.Page.Resources.GetMatch (printf "%s_dark.svg" $src)) (.Page.Resources.GetMatch (printf "%s-dark.svg" $src)) }}
+{{ $bundleLight := or (.Page.Resources.GetMatch (printf "%s_light.svg" $src)) (.Page.Resources.GetMatch (printf "%s-light.svg" $src)) }}
+{{ $assetDark := resources.Get (printf "diagrams/%s%s-dark.svg" $dir $src) }}
+{{ $assetLight := resources.Get (printf "diagrams/%s%s-light.svg" $dir $src) }}
+{{ $dark := or $bundleDark $assetDark }}
+{{ $light := or $bundleLight $assetLight }}
+
 <figure class="diagram diagram-clickable" role="button" tabindex="0" aria-label="Click to enlarge: {{ $alt }}">
   {{ with $dark }}
   <div class="diagram-inner diagram-dark">{{ .Content | safeHTML }}</div>
