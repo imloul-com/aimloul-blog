@@ -4,7 +4,7 @@ subtitle: "Every sorted set in Redis is backed by a data structure that decides 
 date: 2026-04-05
 author: "Imloul Anas"
 tags: ["skip-list", "probabilistic", "redis", "sorted-sets"]
-draft: true
+draft: false
 math: true
 ---
 
