@@ -1,6 +1,6 @@
 ---
 title: "The Probabilistic Gamble:<br>Why Redis Bets Your Data on a Coin Flip"
-subtitle: "Every sorted set in Redis is backed by a data structure that decides its own shape by flipping coins. It should not work this well. Here is why it does."
+subtitle: "Redis stores every sorted set in a data structure that flips coins to decide its own shape. And it turns out that's the smart move."
 date: 2026-04-05
 author: "Imloul Anas"
 tags: ["skip-list", "probabilistic", "redis", "sorted-sets"]
@@ -52,13 +52,13 @@ A self-balancing binary search tree that guarantees $O(\log n)$ operations by en
 
 {{< diagram src="redblacktree" caption="Red–black tree at a glance: a binary search tree whose nodes are colored red or black so the tree stays approximately balanced (same black-node count on every path from the root, no two consecutive reds, and similar rules). Dark nodes are black, bright nodes are red. For the full invariant list and history, see the Wikipedia article linked in the definition above." >}}
 
-When you insert into a red-black tree, the rotations and recoloring can touch nodes far from the insertion point, sometimes cascading all the way to the root. To insert safely under concurrency, you either lock the entire tree (serializing all writes) or implement a complex lock-coupling protocol. Most implementations take the easy path and use a coarse-grained lock.
+When you insert into a red-black tree, the rotations and recoloring can touch nodes far from the insertion point, sometimes cascading all the way to the root. To insert safely when multiple threads are writing at once, you either lock the entire tree (forcing writes to happen one at a time) or implement a complex protocol where threads hand off locks as they descend the tree (called lock coupling). Most implementations take the easy path and use a single coarse-grained lock.
 
 {{< callout title="The concurrency problem is not theoretical" type="error" >}}
 Redis itself is single-threaded for command processing, so it sidesteps this directly. But the lesson generalizes: systems like LevelDB, RocksDB, and many in-memory databases that need concurrent writes have found balanced trees painful to make lock-free. The skip list has a natural concurrent variant that only locks a small, bounded set of nodes per operation.
 {{< /callout >}}
 
-There is a second problem: memory access patterns. A red-black tree node holds left, right, and parent pointers, a color bit, and the key, roughly 40 bytes of overhead on a 64-bit system. Worse, nodes are individually heap-allocated and scattered across memory. A traversal that visits 20 nodes likely incurs 20 cache misses. Each pointer dereference lands on a different cache line (the 64-byte chunk of memory the CPU fetches in one shot), so following a pointer often means waiting for a fresh memory fetch.
+There is a second problem: memory access patterns. A red-black tree node holds left, right, and parent pointers, a color bit, and the key, roughly 32 bytes of overhead on a 64-bit system. Worse, each node is allocated separately and ends up scattered across memory. When the CPU reads memory, it doesn't fetch one byte at a time; it grabs a 64-byte chunk called a cache line and keeps recently-used chunks in a small, fast on-chip memory (the CPU cache). Scattered nodes mean each pointer jump probably lands on a different cache line, forcing the CPU to wait for a fresh memory fetch. A traversal that visits 20 nodes likely incurs 20 of these waits.
 
 The skip list does not fully solve this, but its structure makes cache behavior more predictable in practice.
 
@@ -78,10 +78,10 @@ Now add a third layer that skips half the second. And a fourth. If each layer sk
 A probabilistic data structure built as a hierarchy of sorted linked lists. The bottom layer (level 0) contains every element. Each higher layer contains a random subset of the layer below, where each element is independently promoted with probability p (typically 0.25 or 0.5). Searches descend through the layers, using higher layers to skip large portions and lower layers to refine the position.
 {{< /definition >}}
 
-The word "random" is doing critical work here. A balanced tree forces balance through explicit rotations after every insert or delete. A skip list achieves approximate balance by having each node decide its own height with a biased coin flip (a random draw where the probability of "heads" is p, not necessarily 50/50). No rebalancing is ever needed. The randomness guarantees that, with high probability, the height distribution across the structure approximates what a perfectly balanced tree would look like.
+The word "random" is doing critical work here. A balanced tree forces balance through explicit rotations after every insert or delete. A skip list achieves approximate balance by having each node decide its own height with a biased coin flip (a random draw where the probability of "heads" is p, not necessarily 50/50). No rebalancing is ever needed. The randomness makes the height distribution mimic a balanced tree with overwhelming probability.
 
 {{< callout title="What 'with high probability' actually means" type="info" >}}
-For a skip list with $n$ elements and promotion probability $p = 0.5$, the probability that the maximum height exceeds $3\log_2 n$ is at most $1/n$. With one million elements, the chance of pathological height is less than one in a million per operation. In practice, skip lists handle billions of operations in production without ever hitting worst-case behavior.
+For a skip list with $n$ elements, the chance of ending up badly unbalanced shrinks so fast as $n$ grows that it stops mattering in practice. With one million elements, the odds of hitting pathological height on any given operation are less than one in a million. Skip lists handle billions of operations in production without ever tripping a worst case.
 {{< /callout >}}
 
 ---
@@ -97,7 +97,7 @@ Instead of left and right child pointers, each skip list node contains a **tower
 Searching for 42: start at the top level of the head node. At level 3, the next node is 42, done. Searching for 55: advance to 42 at level 3, next is NULL, drop to level 2, next is 61 (overshoots), drop to level 1, 61 again, drop to level 0, find 55. The higher levels act as an express lane, skipping large chunks of the list in a single pointer jump.
 
 {{< definition icon="FP" term="Forward Pointer Array" >}}
-Each skip list node stores an array of next-pointers, one per level. A node at height h has h forward pointers. With $p = 0.25$, the expected number of forward pointers per node is $1/(1-0.25) = 1.33$, so the average node is only slightly larger than a regular linked list node.
+Each skip list node stores an array of next-pointers, one per level. A node at height h has h forward pointers. With $p = 0.25$, the average node carries about 1.33 forward pointers, so it's only slightly larger than a regular linked list node.
 {{< /definition >}}
 
 ---
@@ -106,9 +106,13 @@ Each skip list node stores an array of next-pointers, one per level. A node at h
 
 ## Search, Insert, and Delete: How the Coin Flip Fits In
 
+Now that you know what a skip list node looks like, here's how the three core operations use that tower structure. All three share the same descent pattern: start at the top level, walk forward until you overshoot, drop down, repeat.
+
 ### Search
 
 Start at the top level of the head node. At each level, advance forward while the next node's key is less than the target. When advancing would overshoot, drop one level. At level 0, the next node is either your target or it doesn't exist. Expected comparisons: $O(\log n)$, each level roughly halves the search space.
+
+Notice the outer loop descending levels and the inner loop walking forward. That's the two-dimensional search pattern the whole structure is built around.
 
 {{< codeblock label="Search" labeltype="neutral" lang="go" >}}
 func search(list *SkipList, target int) *Node {
@@ -131,11 +135,7 @@ func search(list *SkipList, target int) *Node {
 
 Insert starts with a search, but along the way it records the last node visited at each level in an `update` array: a list of predecessors, one per level, whose forward pointers will need to be rewired to include the new node.
 
-Then the coin flip. The new node's height is chosen by repeatedly flipping a biased coin (probability p): each heads promotes it one level higher, each tails stops. The expected height follows from the geometric series:
-
-$$E[\text{height}] = \sum_{k=0}^{\infty} p^k = \frac{1}{1-p}$$
-
-With $p = 0.25$, that's $\frac{1}{0.75} \approx 1.33$ levels on average.
+Then the coin flip. The new node's height is chosen by repeatedly flipping a biased coin (probability p): each heads promotes it one level higher, each tails stops. With $p = 0.25$, that works out to about 1.33 levels on average, most nodes stay short, a few grow tall enough to serve as express-lane stops on the upper levels.
 
 The new node is then spliced in at every level up to its height, using the `update` array to rewire the forward pointers. No rotations. No recoloring. No cascade. The insert touches only the nodes in the `update` array.
 
@@ -192,30 +192,6 @@ func delete(list *SkipList, key int) bool {
   return true // target is now unreachable and can be freed
 }
 {{< /codeblock >}}
-
----
-
-{{< section-label >}}The Redis Implementation{{< /section-label >}}
-
-## How Redis Actually Uses It
-
-Redis doesn't use a skip list for every sorted set. Small ones (under 128 members by default, or members exceeding 64 bytes) use a **listpack**, a compact encoding that stores everything sequentially in contiguous memory. Faster to scan, less memory.
-
-Once a sorted set grows past that threshold, Redis automatically converts it in place to the skip list structure, transparently, on the write that crosses the limit.
-
-{{< definition icon="ZS" term="Redis zskiplist" >}}
-Redis's skip list implementation, defined in `t_zset.c`. Each node stores the member string, its floating-point score, and a backward pointer for reverse traversal, alongside the forward pointer array. Sorted primarily by score, secondarily by lexicographic order of the member string, so two members with identical scores still have a stable, deterministic ordering.
-{{< /definition >}}
-
-{{< definition icon="ZD" term="Redis zset (the dual structure)" >}}
-Above the listpack threshold, a sorted set is two structures in parallel: a skip list for ordered traversal and range queries, and a hash table mapping member strings to scores for $O(1)$ lookup. Every `ZADD` writes to both. Every `ZREM` removes from both.
-{{< /definition >}}
-
-The skip list answers "give me the top 100 by score." The hash table answers "what is alice's score?" Neither alone handles both efficiently, so Redis maintains both and pays the memory cost.
-
-{{< callout title="Why Redis uses p = 0.25" type="info" >}}
-Most examples use p = 0.5, but Redis uses 0.25. This produces shorter nodes on average, saving memory on the forward pointer arrays. The tradeoff is slightly more comparisons per search (sparser upper levels), but for millions of members the memory savings win. The maximum level is capped at 64, enough for 2^64 elements.
-{{< /callout >}}
 
 ---
 
@@ -280,7 +256,67 @@ With the structure understood, here's how it compares:
   </tbody>
 </table>
 
-The "expected" qualifier is the honest difference. A red-black tree guarantees $O(\log n)$ worst case. A skip list guarantees it in expectation: the probability of exceeding it decays exponentially, but it's not zero. For most production workloads, this is irrelevant. For hard real-time systems with strict latency bounds, it matters.
+The "expected" qualifier is the honest difference. A red-black tree guarantees $O(\log n)$ worst case. A skip list guarantees it in expectation: the probability of exceeding it shrinks exponentially as $n$ grows, but it's not zero. For most production workloads, this is irrelevant. For hard real-time systems with strict latency bounds, it matters.
+
+---
+
+{{< section-label >}}Concurrency{{< /section-label >}}
+
+## Why Skip Lists Scale Under Concurrent Writes
+
+When multiple threads try to modify a data structure at once, you need rules to stop them from corrupting each other's work. Those rules (locks, atomic operations, ordering guarantees) are the hard part of building concurrent systems, and skip lists make them easier than trees do. This is where skip lists most clearly win in practice.
+
+Remember the update array: the only nodes whose pointers change during an insert. In a concurrent setting, you lock exactly those nodes, splice in the new node, and release. Two inserts into different parts of the list touch disjoint update arrays and proceed in parallel without contention.
+
+This is **localized modification**. Compare it to a red-black tree, where a rotation at a leaf can cascade upward through ancestors that are shared by every traversal in the tree.
+
+{{< pillars >}}
+{{< pillar num="01" title="Localized Modification" >}}
+The update array has at most $O(\log n)$ entries, all identified during the search phase before any locks are acquired. Simple, predictable locking.
+{{< /pillar >}}
+{{< pillar num="02" title="No Rebalancing Cascade" >}}
+No operation triggers unbounded structural changes. The worst case for any insert or delete is bounded by the node's height, which is logarithmic with high probability.
+{{< /pillar >}}
+{{< pillar num="03" title="Lock-Free Variants" >}}
+The bounded modification footprint enables lock-free implementations using compare-and-swap, a CPU instruction that atomically updates a pointer only if it still holds an expected value (letting threads coordinate without explicit locks). Java's `ConcurrentSkipListMap` uses this approach, so throughput keeps climbing as you add threads instead of plateauing.
+{{< /pillar >}}
+{{< /pillars >}}
+
+---
+
+{{< section-label >}}Memory Layout{{< /section-label >}}
+
+## The Cache Behavior of a Skip List
+
+A fair criticism of skip lists: variable-height nodes with individually allocated pointer arrays are harder to lay out in memory than fixed-size tree nodes. On 10 million members, the overhead is measurable.
+
+But this misses an access pattern advantage. Recall that the CPU keeps recently-used memory in a small, fast on-chip cache (the L1, L2, and L3 caches, in increasing size and decreasing speed). Anything that stays in cache is dramatically faster to access than main memory. The higher levels of a skip list act as an increasingly coarse index: the top few levels are touched on virtually every operation, so they stay hot in CPU cache. With p = 0.25, level-3 nodes appear at roughly 1.5% of positions. A 10-million-element dataset has about 150,000 level-3 nodes, small enough to sit comfortably in L3 cache under sustained load.
+
+{{< callout title="The upper levels behave like a cache-resident index" type="info" >}}
+Just as the upper levels of a B-tree tend to stay in the database's page cache because they're accessed on every query, the upper levels of a skip list tend to stay in CPU cache because they're visited on every search. The probabilistic structure accidentally recreates the locality properties of a deliberately designed hierarchical index.
+{{< /callout >}}
+
+---
+
+{{< section-label >}}The Redis Implementation{{< /section-label >}}
+
+## How Redis Actually Uses It
+
+Redis doesn't use a skip list for every sorted set. Small ones use a **listpack**, a compact encoding that stores everything sequentially in contiguous memory. Faster to scan, less memory. Once a sorted set crosses a threshold (more than 128 members, or any member longer than 64 bytes, by default), Redis automatically converts it in place to the skip list structure, transparently, on the write that crosses the limit.
+
+{{< definition icon="ZS" term="Redis zskiplist" >}}
+Redis's skip list implementation, defined in `t_zset.c`. Each node stores the member string, its floating-point score, and a backward pointer for reverse traversal, alongside the forward pointer array. Sorted primarily by score, secondarily by lexicographic order of the member string, so two members with identical scores still have a stable, deterministic ordering.
+{{< /definition >}}
+
+{{< definition icon="ZD" term="Redis zset (the dual structure)" >}}
+Above the listpack threshold, a sorted set is two structures in parallel: a skip list for ordered traversal and range queries, and a hash table mapping member strings to scores for $O(1)$ lookup. Every `ZADD` writes to both. Every `ZREM` removes from both.
+{{< /definition >}}
+
+The skip list answers "give me the top 100 by score." The hash table answers "what is alice's score?" Neither alone handles both efficiently, so Redis maintains both and pays the memory cost.
+
+{{< callout title="Why Redis uses p = 0.25" type="info" >}}
+Most examples use p = 0.5, but Redis uses 0.25. This produces shorter nodes on average, saving memory on the forward pointer arrays. The tradeoff is slightly more comparisons per search (sparser upper levels), but for millions of members the memory savings win. The maximum level is capped at 64, enough for 2^64 elements.
+{{< /callout >}}
 
 ---
 
@@ -298,48 +334,6 @@ Spans are maintained during inserts and deletes by adjusting values in the `upda
 
 The result: `ZRANK` runs in $O(\log n)$ with no extra data structure and no base-layer scan. It's a clean example of augmenting a traversal structure with per-node metadata to unlock a new query type at minimal cost.
 
-{{< callout title="Connection to Order Statistics Trees" type="info" >}}
-If you're familiar with augmented BSTs: span augmentation is conceptually identical to subtree counts in an Order Statistics Tree. Both record "how many elements are behind this pointer" to answer rank queries in $O(\log n)$. The practical difference is update cost. In an OST, count updates cascade to the root on every insert. In the skip list, span updates are confined to the update array nodes, which were already being modified anyway, so there's no extra traversal cost.
-{{< /callout >}}
-
----
-
-{{< section-label >}}Concurrency{{< /section-label >}}
-
-## Why Skip Lists Scale Under Concurrent Writes
-
-This is where skip lists most clearly win in practice.
-
-Remember the update array: the only nodes whose pointers change during an insert. In a concurrent setting, you lock exactly those nodes, splice in the new node, and release. Two inserts into different parts of the list touch disjoint update arrays and proceed in parallel without contention.
-
-This is **localized modification**. Compare it to a red-black tree, where a rotation at a leaf can cascade upward through ancestors that are shared by every traversal in the tree.
-
-{{< pillars >}}
-{{< pillar num="01" title="Localized Modification" >}}
-The update array has at most $O(\log n)$ entries, all identified during the search phase before any locks are acquired. Simple, predictable locking.
-{{< /pillar >}}
-{{< pillar num="02" title="No Rebalancing Cascade" >}}
-No operation triggers unbounded structural changes. The worst case for any insert or delete is bounded by the node's height, which is logarithmic with high probability.
-{{< /pillar >}}
-{{< pillar num="03" title="Lock-Free Variants" >}}
-The bounded modification footprint enables lock-free implementations using compare-and-swap, a CPU instruction that atomically updates a pointer only if it still holds an expected value. Java's `ConcurrentSkipListMap` uses this approach, achieving near-linear throughput scaling with thread count.
-{{< /pillar >}}
-{{< /pillars >}}
-
----
-
-{{< section-label >}}Memory Layout{{< /section-label >}}
-
-## The Cache Behavior of a Skip List
-
-A fair criticism of skip lists: variable-height nodes with individually allocated pointer arrays are harder to lay out in memory than fixed-size tree nodes. On 10 million members, the overhead is measurable.
-
-But this misses an access pattern advantage. The higher levels act as an increasingly coarse index. The top few levels are touched on virtually every operation and stay hot in CPU cache. With p = 0.25, level-3 nodes appear at roughly 1.5% of positions. A 10-million-element dataset has about 150,000 level-3 nodes, small enough to sit comfortably in L3 cache under sustained load.
-
-{{< callout title="The upper levels behave like a cache-resident index" type="info" >}}
-Just as the upper levels of a B-tree tend to stay in the database's page cache because they're accessed on every query, the upper levels of a skip list tend to stay in CPU cache because they're visited on every search. The probabilistic structure accidentally recreates the locality properties of a deliberately designed hierarchical index.
-{{< /callout >}}
-
 ---
 
 {{< section-label >}}Where Skip Lists Are Used{{< /section-label >}}
@@ -348,11 +342,11 @@ Just as the upper levels of a B-tree tend to stay in the database's page cache b
 
 Redis is the most visible user, but skip lists show up in more places than you'd expect.
 
-**LevelDB and RocksDB** use a skip list as their in-memory write buffer (MemTable). Writes land in the skip list first, queryable immediately, then flush to disk as SSTables. It supports point lookups, range scans, fast inserts, and sorted iteration for flushing. RocksDB uses a lock-free variant for concurrent access.
+**LevelDB and RocksDB** (embedded storage engines used inside databases like Cassandra, CockroachDB, and many others) use a skip list as their in-memory write buffer. Writes land in the skip list first, queryable immediately, then get flushed to disk in batches. The skip list supports point lookups, range scans, fast inserts, and sorted iteration for flushing, everything the write buffer needs in one structure. RocksDB uses a lock-free variant for concurrent access.
 
-**Apache Lucene** uses skip lists inside inverted index posting lists to speed up boolean query evaluation. When intersecting or unioning posting lists, skip pointers let the merge algorithm jump forward over irrelevant entries.
+**Apache Lucene** (the full-text search library behind Elasticsearch and Solr) uses skip lists to speed up boolean query evaluation. When intersecting or unioning result lists from different search terms, skip pointers let the merge algorithm jump forward over irrelevant entries instead of walking every position.
 
-**Java's ConcurrentSkipListMap** is the standard library's concurrent sorted map, a lock-free implementation that avoids the serialization cost of synchronized wrappers.
+**Java's ConcurrentSkipListMap** is the standard library's concurrent sorted map, a lock-free implementation that avoids the bottleneck of wrapping a regular map in a synchronized block.
 
 {{< callout title="A pattern worth noticing" type="info" >}}
 In every case, the skip list is chosen not for better asymptotic complexity (it's the same) but because it is simpler to implement correctly under concurrency. The randomness that feels unprincipled is exactly what eliminates the rebalancing logic that makes concurrent balanced trees so hard to get right.
@@ -366,11 +360,11 @@ In every case, the skip list is chosen not for better asymptotic complexity (it'
 
 Three genuine tradeoffs worth knowing.
 
-**Worst-case complexity is probabilistic, not guaranteed.** A red-black tree guarantees $O(\log n)$ for every operation. A skip list guarantees it in expectation. For most workloads, this is academic. For hard real-time systems or financial matching engines with strict SLA requirements, the deterministic guarantee may matter.
+**Worst-case complexity is probabilistic, not guaranteed.** A red-black tree guarantees $O(\log n)$ for every operation. A skip list guarantees it in expectation. For most workloads, this is academic. For hard real-time systems or financial matching engines with strict latency requirements, the deterministic guarantee may matter.
 
-**Memory overhead is higher.** A height-4 node has 4 forward pointers plus backward pointer, score, and member pointer: ~56 bytes of overhead. A red-black tree node is ~32 bytes. With p = 0.25, the average overhead per node is about 10.7 bytes (competitive), but tall outlier nodes are substantially larger.
+**Memory overhead is higher.** A height-4 Redis node carries 4 forward pointers plus a backward pointer, score, and member pointer: around 56 bytes of overhead. A red-black tree node is around 32 bytes. With p = 0.25, the average overhead per skip list node is about 10.7 bytes (competitive), but tall outlier nodes are substantially larger.
 
-**No on-disk variant.** The skip list is an in-memory structure. Variable-length nodes and pointer-heavy layout make it unsuitable for disk storage. This is why LevelDB uses skip lists for its in-memory MemTable but B-trees (via SSTables) for the on-disk component.
+**No on-disk variant.** The skip list is an in-memory structure. Variable-length nodes and pointer-heavy layout make it unsuitable for disk storage. This is why LevelDB and RocksDB use skip lists for the in-memory write buffer but B-trees for the on-disk files.
 
 ---
 
@@ -410,5 +404,5 @@ Pugh's 1990 insight was simple: perfect balance is not the goal. Good-enough bal
 
 Redis, LevelDB, Java's standard library: they all reached for the skip list when they needed a sorted structure that was simple to write, simple to reason about, and simple to make concurrent.
 
-**The next time you call `ZADD` or `ZRANK`, a coin is being flipped somewhere in the call stack. In thirty-six years of production use, it has never come up tails often enough to matter.**
+**The next time you call `ZADD` or `ZRANK`, a coin is being flipped somewhere in the call stack. In thirty-six years since Pugh's paper, it has never come up tails often enough to matter.**
 {{< /conclusion >}}
