@@ -10,7 +10,7 @@ math: true
 
 If you ever trace how `ZADD` works in Redis, follow the call stack into the sorted set implementation, you expect to land on a balanced tree or some well-known variant. What you find instead is a function called `zslInsert` with a loop that calls `random()` to decide how tall to build each new node.
 
-Redis. The database that half the internet runs on. Deciding the shape of its index with a random number generator.
+Redis. The key-value store sitting behind a huge chunk of the internet's caching layer. Deciding the shape of its index with a random number generator.
 
 My first reaction was that I'd misread something. Then that it must be isolated to some edge case. But the more I dug, the clearer it became: this was deliberate. Not a shortcut, a tradeoff. One that gives up the deterministic guarantees of a balanced tree in exchange for simpler code, better cache behavior, and concurrency that scales well under real load.
 
@@ -44,7 +44,7 @@ A red-black tree gives you everything the sorted set needs. Insertion, deletion,
 
 So why doesn't Redis use one?
 
-The algorithmic complexity is essentially the same. The real differences are implementation complexity, memory layout, and how well the structure holds up under concurrent writes. Redis itself is single-threaded for command processing, so the concurrency angle doesn't bite it directly. But Redis borrowed the skip list from a lineage of systems that *do* run concurrent writers (LevelDB, RocksDB, Java's standard library), and understanding why those systems picked it is the clearest way to see what the skip list actually buys you. So the critique that follows is aimed at balanced trees in general, not at Redis's specific use case.
+The algorithmic complexity is essentially the same. The real differences are implementation complexity, memory layout, and how well the structure holds up under concurrent writes. Redis itself is single-threaded for command processing, so the concurrency angle doesn't bite it directly. But Redis inherited the skip list from a lineage of systems that *do* run concurrent writers (LevelDB, RocksDB, Java's standard library), and got a free win in the process: the properties that make skip lists easy to make concurrent also make the code simpler to write and reason about. The critique that follows applies to balanced trees in general rather than to Redis specifically, but that simplicity payoff is what Redis is taking advantage of.
 
 {{< definition icon="RBT" term="Red-Black Tree" >}}
 A self-balancing binary search tree that guarantees $O(\log n)$ operations by enforcing structural rules after every insert and delete. Correct, but hard to implement and harder to make concurrent. [Wikipedia](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree)
@@ -64,7 +64,7 @@ There is a second problem, and this one *does* apply to Redis: memory access pat
 The CPU doesn't fetch memory one byte at a time. It grabs a 64-byte chunk called a cache line and keeps recently-used chunks in a small, fast on-chip memory called the CPU cache. Accessing data already in cache is roughly 100x faster than fetching it from main memory. When two pieces of data you need sit on different cache lines, you pay the full fetch cost for each one.
 {{< /definition >}}
 
-In a red-black tree, each pointer jump probably lands on a different cache line, forcing the CPU to wait for a fresh memory fetch. A traversal that visits 20 nodes likely incurs 20 of those waits. The skip list doesn't fully solve this (its nodes are also heap-allocated), but its structure makes cache behavior more predictable, for reasons we'll get to.
+In a red-black tree, each pointer jump probably lands on a different cache line, forcing the CPU to wait for a fresh memory fetch. A traversal that visits 20 nodes likely incurs 20 of those waits. Skip list nodes are heap-allocated too, so per-node locality is roughly a wash between the two. The win shows up at the access-pattern level instead, for reasons we'll get to.
 
 ---
 
@@ -98,12 +98,14 @@ For a skip list with $n$ elements, the chance of ending up badly unbalanced shri
 
 Instead of left and right child pointers, each skip list node contains a **tower** of forward pointers, one per level it participates in. A node at level 3 has three forward pointers: one for each level, each pointing to the next node at that level.
 
-{{< diagram src="skiplist" caption="Skip List: the bottom layer contains every element. Each higher layer is a probabilistic subset of the layer below. Searches use higher layers to skip large portions of the list, dropping down as they approach the target." >}}
+The interactive skip list below has every element on the bottom layer (level 0), with each higher layer a probabilistic subset of the one beneath it. Searching for 42: start at the top level of the head node. At level 3, the next node is 42, done. Searching for 55: advance to 42 at level 3, next is NULL, drop to level 2, next is 61 (overshoots), drop to level 1, 61 again, drop to level 0, find 55. The higher levels act as an express lane, skipping large chunks of the list in a single pointer jump.
 
-Searching for 42: start at the top level of the head node. At level 3, the next node is 42, done. Searching for 55: advance to 42 at level 3, next is NULL, drop to level 2, next is 61 (overshoots), drop to level 1, 61 again, drop to level 0, find 55. The higher levels act as an express lane, skipping large chunks of the list in a single pointer jump.
+Try it yourself. **Search** `55` to retrace that exact descent across the express lanes, or **insert** a value to watch the coin flips decide its tower height before it's spliced in. No rebalancing ever runs.
+
+{{< animation name="skiplist" src="skiplist.anim.js" caption="Interactive skip list. Insert a value to watch the biased coin flips choose its height, then search to trace the level-by-level descent. Drag horizontally on smaller screens." >}}
 
 {{< definition icon="FP" term="Forward Pointer Array" >}}
-Each skip list node stores an array of next-pointers, one per level. A node at height h has h forward pointers. The expected height is $1/(1-p)$, so with $p = 0.25$ the average node carries about 1.33 forward pointers, only slightly larger than a regular linked list node.
+Each skip list node stores an array of next-pointers, one per level. A node at height h has h forward pointers. Most nodes never get promoted past level 0; with $p = 0.25$, only a quarter of the rest survive each coin flip to reach the next level. The expected height works out to $1/(1-p)$, so the average node carries about 1.33 forward pointers, only slightly larger than a regular linked list node.
 {{< /definition >}}
 
 ---
@@ -146,6 +148,15 @@ Then the coin flip. The new node's height is chosen by repeatedly flipping a bia
 The new node is then spliced in at every level up to its height, using the `update` array to rewire the forward pointers. No rotations. No recoloring. No cascade. The insert touches only the nodes in the `update` array.
 
 {{< codeblock label="Insert" labeltype="neutral" lang="go" >}}
+// coinFlip picks a node's height: keep flipping while we're under p, capped at maxLevel.
+func coinFlip(p float64) int {
+  height := 0
+  for random() < p && height < maxLevel { 
+    height++
+  }
+  return height
+}
+
 func insert(list *SkipList, key int, value string) {
   update := make([]*Node, list.maxLevel+1) // rightmost node visited at each level
   node := list.head
@@ -340,7 +351,9 @@ A plain skip list can tell you whether a key exists, but not its rank (ordinal p
 An integer on each forward pointer recording how many base-layer nodes it skips over. A level-2 pointer jumping from A to C, skipping B1 and B2, has a span of 3. By summing spans along the search path, Redis gets the exact rank without touching the nodes in between.
 {{< /definition >}}
 
-Spans are maintained during inserts and deletes by adjusting values in the `update` array, adding only a constant factor to those operations.
+A worked example helps. Imagine a level-2 forward pointer from A to C with a span of 5, meaning C sits 5 base-layer positions to the right of A. Now insert a new node X somewhere between A and C. If X stays at level 0 (the common case), it slips under the level-2 pointer and increments its span to 6, since the same pointer now jumps over one extra node. If X gets promoted to level 2, the original A-to-C pointer splits in two: A points to X with the span up to that point, and X points to C with the remainder. The two new spans sum to 6, preserving the total.
+
+That accounting happens during the splice step, using the same `update` array the structural rewiring uses, so spans cost only a constant factor on top of insert and delete. The ranks themselves fall out of the search: as you descend, sum the spans of every pointer you traverse, and the running total is the target's rank when you arrive.
 
 The result: `ZRANK` runs in $O(\log n)$ with no extra data structure and no base-layer scan. It's a clean example of augmenting a traversal structure (attaching small pieces of derived metadata to each node) to unlock a new query type at minimal cost.
 

@@ -1,0 +1,35 @@
+{{- /*
+  Generic interactive-animation embed.
+
+  Usage:  {{< animation name="skiplist" src="skiplist.anim.js" caption="..." values="6,14,21" >}}
+
+  - name: the id the article's module passes to Anim.define(...)
+  - src:  a JS file living in this page's bundle (same folder as index.md)
+  - any other named param is forwarded as a data-* attribute the module can read
+    via ctx.config(key).
+
+  The framework runtime is theme-owned; the animation definition is article-owned.
+*/ -}}
+{{- if not (.Page.Store.Get "anim-framework-loaded") -}}
+{{- .Page.Store.Set "anim-framework-loaded" true -}}
+{{- $fw := resources.Get "js/anim.js" | fingerprint -}}
+<script src="{{ $fw.RelPermalink }}" integrity="{{ $fw.Data.Integrity }}" crossorigin="anonymous" defer></script>
+{{- end -}}
+
+{{- $name := .Get "name" -}}
+{{- $src := .Get "src" -}}
+{{- $mod := .Page.Resources.GetMatch $src -}}
+{{- if $mod -}}
+  {{- $key := printf "anim-mod-%s" $src -}}
+  {{- if not (.Page.Store.Get $key) -}}
+  {{- .Page.Store.Set $key true -}}
+  {{- $m := $mod | fingerprint -}}
+  <script src="{{ $m.RelPermalink }}" integrity="{{ $m.Data.Integrity }}" crossorigin="anonymous" defer></script>
+  {{- end -}}
+<figure class="anim" data-anim="{{ $name }}"
+  {{- range $k, $v := .Params }}{{ if not (in (slice "name" "src" "caption") $k) }} data-{{ $k }}="{{ $v }}"{{ end }}{{ end }}>
+  {{- with .Get "caption" }}<figcaption class="diagram-caption">{{ . }}</figcaption>{{ end }}
+</figure>
+{{- else -}}
+{{- errorf "animation shortcode: source %q not found in page bundle for %s" $src .Page.File.Path -}}
+{{- end -}}

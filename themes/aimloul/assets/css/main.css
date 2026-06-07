@@ -2030,3 +2030,124 @@ article hr {
   .note-row { flex-wrap: wrap; gap: 4px 12px; }
   .note-tags { width: 100%; }
 }
+
+/* ── INTERACTIVE ANIMATION FRAMEWORK (generic chrome) ── */
+/* Article-specific stage styling is injected by each animation module;
+   only the reusable shell lives here. */
+.anim {
+  margin: 32px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.anim-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.anim-field { display: flex; }
+.anim-input {
+  width: 88px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 6px 9px;
+}
+.anim-input:focus-visible { outline: none; border-color: var(--accent); }
+.anim-btn {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.anim-btn:hover { border-color: var(--accent); color: var(--accent); }
+.anim-btn:focus-visible { outline: none; border-color: var(--accent); }
+.anim-btn.is-primary { border-color: var(--accent); color: var(--accent); }
+.anim-btn.is-muted { margin-left: auto; color: var(--text-dim); }
+.anim.is-busy .anim-btn { opacity: 0.55; cursor: default; }
+
+.anim-viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 14px 4px;
+}
+.anim-viewport:focus-visible { outline: none; }
+.anim-stage {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+
+.anim-status {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--text-mid);
+  margin: 0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  min-height: 1.5em;
+}
+
+/* Default visual vocabulary for sketch primitives — most animations need
+   no CSS of their own; an article can still ship scoped overrides. */
+.anim-box rect {
+  fill: var(--bg);
+  stroke: var(--border);
+  stroke-width: 1.5;
+  transition: fill 0.2s, stroke 0.2s;
+}
+.anim-box text {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  fill: var(--text);
+  transition: fill 0.2s;
+}
+.anim-box.is-muted rect { fill: var(--surface); stroke: var(--text-dim); }
+.anim-box.is-muted text { fill: var(--text-dim); }
+.anim-box.is-active rect { fill: color-mix(in srgb, var(--accent) 14%, var(--bg)); stroke: var(--accent); stroke-width: 2; }
+.anim-box.is-active text { fill: var(--accent); }
+.anim-box.is-found rect { stroke: var(--good); stroke-width: 2.5; }
+.anim-box.is-found text { fill: var(--good); }
+
+.anim-link {
+  stroke: var(--text-dim);
+  stroke-width: 1.5;
+  opacity: 0.55;
+  transition: stroke 0.2s, opacity 0.2s;
+}
+.anim-link.is-traversed { stroke: var(--accent); opacity: 1; stroke-width: 2; }
+.anim-arrow { fill: var(--text-dim); }
+.anim-rule { stroke: var(--border); stroke-width: 2; }
+.anim-lane { font-family: var(--font-mono); font-size: 9px; fill: var(--text-dim); }
+
+@media (max-width: 600px) {
+  .anim-controls { gap: 6px; padding: 10px; }
+  .anim-input { width: 72px; }
+  .anim-btn { padding: 6px 10px; }
+  .anim-btn.is-muted { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-btn,
+  .anim-box rect,
+  .anim-box text,
+  .anim-link { transition: none; }
+}
