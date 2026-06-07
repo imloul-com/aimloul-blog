@@ -116,6 +116,8 @@ Each skip list node stores an array of next-pointers, one per level. A node at h
 
 Now that you know what a node looks like, here's how the three core operations use that tower structure. All three share the same descent pattern, and keeping it in mind will make the code below easy to read: start at the top level, walk forward until you overshoot, drop down a level, repeat. The only thing that changes between operations is what you do once you get there.
 
+The examples below are written in Go. If you don't know the language, don't worry about the syntax: the comments and the overall structure carry the idea, and that's all you need to follow along.
+
 ### Search
 
 Start at the top level of the head node. At each level, advance forward while the next node's key is less than the target. When advancing would overshoot, drop one level. At level 0, the next node is either your target or it doesn't exist. Expected comparisons: $O(\log n)$, each level cuts the search space by a factor of $1/p$.
@@ -281,7 +283,7 @@ The "expected" qualifier is the honest difference. A red-black tree guarantees $
 
 ## Why Skip Lists Scale Under Concurrent Writes
 
-When multiple threads try to modify a data structure at once, you need rules to stop them from corrupting each other's work. Those rules (locks, atomic operations, ordering guarantees) are the hard part of building concurrent systems, and skip lists make them easier than trees do. This is where skip lists most clearly win in practice.
+When multiple threads try to modify a data structure at once, you need rules to stop them from corrupting each other's work. Those rules (locks, atomic operations, ordering guarantees) are the hard part of building concurrent systems, and skip lists make them easier than trees do. Redis never exercises this directly, since it processes commands on a single thread, so it isn't a Redis win in its own right. It's the reason the structure took hold in systems that *do* run concurrent writers (LevelDB, RocksDB, Java's standard library), and that lineage is what carried the skip list to Redis in the first place.
 
 Remember the update array: the only nodes whose pointers change during an insert. In a concurrent setting, you lock exactly those nodes, splice in the new node, and release. Two inserts into different parts of the list touch disjoint update arrays and proceed in parallel without contention.
 
@@ -399,7 +401,7 @@ With the structure in hand, here's what actually happens when you run the comman
 
 **`ZADD` and `ZREM` are $O(\log n)$.** Descend the skip list, populate the update array, splice, update spans. At a million members, roughly 20 pointer comparisons.
 
-**`ZRANGE` and `ZRANGEBYSCORE` are $O(\log n + k)$.** Descend to the start position in $O(\log n)$, then walk the base layer forward for $k$ results. The base-layer walk follows `next` pointers one at a time, which is cache-friendly here because consecutive nodes tend to be accessed together and often share the same cache line.
+**`ZRANGE` and `ZRANGEBYSCORE` are $O(\log n + k)$.** Descend to the start position in $O(\log n)$, then walk the base layer forward for $k$ results. The base-layer walk follows `next` pointers one at a time, and since nodes are individually heap-allocated and scattered across memory, this is ordinary pointer chasing with the same cache behavior as any linked list.
 
 **`ZRANK` is $O(\log n)$ thanks to span augmentation.** Without spans, this would be an $O(n)$ base-layer scan. The span values accumulated during descent give the exact rank as a byproduct.
 
