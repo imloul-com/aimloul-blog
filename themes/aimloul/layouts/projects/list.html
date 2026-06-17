@@ -15,9 +15,9 @@
     <div class="project-card-top">
       <h2 class="project-title">
         {{ if .Params.url }}
-        <a href="{{ .Params.url }}" target="_blank" rel="noopener noreferrer">{{ .Title }}</a>
+        <a href="{{ .Params.url }}" target="_blank" rel="noopener noreferrer">{{ .Title | replaceRE "<br\\s*/?>" " " | safeHTML }}</a>
         {{ else }}
-        <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+        <a href="{{ .RelPermalink }}">{{ .Title | replaceRE "<br\\s*/?>" " " | safeHTML }}</a>
         {{ end }}
       </h2>
       {{ with .Params.status }}

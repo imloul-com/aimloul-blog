@@ -1,0 +1,29 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+
+direction: right
+
+q: "query text\n'from .events[] as e\nwhere e.amount > 500 ...'"
+lex: "Lexer\ntokens"
+sp: "Surface parser\nrecursive descent\n→ surface AST"
+low: "Lower\nsurface AST\n→ engine AST"
+ev: "Evaluator\nwalk + sinks"
+out: "NDJSON\none value per line"
+
+q -> lex -> sp -> low -> ev -> out
+
+explain: "jsq --explain\nstops here" {
+  style: {
+    stroke-dash: 4
+    font-size: 12
+    italic: true
+  }
+}
+low -> explain: {
+  style: {
+    stroke-dash: 4
+  }
+}

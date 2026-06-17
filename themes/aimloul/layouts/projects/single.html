@@ -1,6 +1,20 @@
 {{ define "nav-back" }}<a href="{{ "/projects/" | relURL }}" class="nav-back">&larr; Projects</a>{{ end }}
 
 {{ define "main" }}
+{{ if .TableOfContents }}
+<aside class="toc-sidebar" aria-label="On this page">
+  <p class="toc-label">On this page</p>
+  {{ .TableOfContents }}
+</aside>
+{{ end }}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{{ "/" | relURL }}">home</a>
+  <span class="breadcrumb-sep">/</span>
+  <a href="{{ "/projects/" | relURL }}">projects</a>
+  <span class="breadcrumb-sep">/</span>
+  {{- $slug := index (last 2 (split .RelPermalink "/")) 0 -}}
+  <span class="breadcrumb-current">{{ .Params.breadcrumb | default ($slug | replaceRE "-" " ") }}</span>
+</nav>
 <article>
   <header>
     <div class="eyebrow">Project</div>
@@ -22,4 +36,53 @@
   </header>
   {{ .Content }}
 </article>
+
+{{ if .TableOfContents }}
+<div class="toc-float" id="toc-float">
+  <div class="toc-float-panel" id="toc-float-panel" aria-hidden="true">
+    <p class="toc-float-heading">On this page</p>
+    {{ .TableOfContents }}
+  </div>
+  <button class="toc-float-btn" id="toc-float-btn" aria-expanded="false" aria-controls="toc-float-panel">
+    {{ partial "icons.html" "toc" }}
+    <span>Contents</span>
+  </button>
+</div>
+{{ end }}
+
+<div class="share-bar">
+  <span class="share-label">Share</span>
+  <div class="share-actions">
+    <a href="https://x.com/intent/tweet?text={{ .Title | urlquery }}&url={{ .Permalink | urlquery }}" target="_blank" rel="noopener noreferrer" class="share-btn" aria-label="Share on X">
+      {{ partial "icons.html" "share-x" }}
+    </a>
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ .Permalink | urlquery }}" target="_blank" rel="noopener noreferrer" class="share-btn" aria-label="Share on LinkedIn">
+      {{ partial "icons.html" "share-linkedin" }}
+    </a>
+    <button class="share-btn" id="copy-link-btn" aria-label="Copy link">
+      {{ partial "icons.html" "copy-link" }}
+    </button>
+  </div>
+</div>
+
+{{ $readNext := .NextInSection }}
+{{ with .Params.next }}
+  {{ $slug := . }}
+  {{ $p := index (where $.Site.RegularPages "File.ContentBaseName" $slug) 0 }}
+  {{ if $p }}{{ $readNext = $p }}{{ end }}
+{{ end }}
+{{ with $readNext }}
+<section class="read-next">
+  <p class="read-next-label">Read next</p>
+  <a href="{{ .RelPermalink }}" class="read-next-card">
+    <span class="read-next-category">Project</span>
+    <span class="read-next-title">{{ .Title | safeHTML }}</span>
+    <span class="read-next-arrow">&rarr;</span>
+  </a>
+</section>
+{{ end }}
+
+<button id="back-to-top" aria-label="Back to top">
+  {{ partial "icons.html" "arrow-up" }}
+</button>
 {{ end }}
