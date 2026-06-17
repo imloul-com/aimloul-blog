@@ -211,8 +211,8 @@ If your use case requires exact, always-current counts that are cheap to query, 
 
 ---
 
-{{< conclusion title="A Deliberate, Brilliant Trade-off" label="Conclusion" >}}
-The absence of Order Statistics B-Trees in your favorite relational database is not a failure of imagination. It is a testament to how deeply the constraints of concurrency, isolation, and physical hardware shape what is architecturally possible.
+{{< conclusion title="A Deliberate Trade-off" label="Conclusion" >}}
+The absence of Order Statistics B-Trees in your favorite relational database is not a failure of imagination. It shows how deeply the constraints of concurrency, isolation, and physical hardware shape what is architecturally possible.
 
 Augmenting every B-tree node with a subtree count looks like a free lunch: a small addition that buys $O(\log n)$ counting and pagination for free. But that integer cascades upward on every write, violates transactional isolation under MVCC (a correctness problem with no workaround), serializes all writes through the root (a scalability problem that gets worse as hardware improves), and multiplies physical I/O by the tree's depth (a cost that compounds across every write, every replica, and every SSD in your cluster).
 

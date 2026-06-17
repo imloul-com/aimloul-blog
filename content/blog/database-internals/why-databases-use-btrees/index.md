@@ -9,13 +9,13 @@ draft: false
 math: true
 ---
 
-It is a question every developer eventually asks, usually late at night, staring at a query plan they don't fully understand.
+It's a question every developer eventually asks, usually while staring at a query plan they don't fully understand.
 
 You've just added an index to a table with 200 million rows. The query that took 8 seconds now returns in 3 milliseconds. You know *that* it works. But you've never been forced to ask *why*.
 
-The honest answer goes deeper than most tutorials will take you. It begins not with code, but with physics: with the brutal, unavoidable gap between how fast your CPU thinks and how slowly your disk responds. And it ends with a single data structure, invented in 1970, that has proven so perfectly matched to the laws of hardware that no competitor has displaced it in over fifty years.
+The real answer goes deeper than most tutorials will take you. It begins not with code, but with physics: with the brutal, unavoidable gap between how fast your CPU thinks and how slowly your disk responds. And it ends with a single data structure, invented in 1970, that has proven so perfectly matched to the laws of hardware that no competitor has displaced it in over fifty years.
 
-That structure is the **B-tree**. Understanding it (really understanding it) changes how you read query plans, how you choose indexes, and how you reason about why some queries are fast and others are slow regardless of how much hardware you throw at them.
+That structure is the **B-tree**. Understanding it properly changes how you read query plans, how you choose indexes, and how you reason about why some queries are fast and others are slow regardless of how much hardware you throw at them.
 
 ---
 
@@ -124,7 +124,7 @@ The contrast becomes stark when you lay the structures side by side:
 
 ## What Makes a B-Tree a B-Tree
 
-Rudolf Bayer and Edward McCreight invented the B-tree in 1970 at Boeing Research Labs. (What the "B" stands for has never been officially settled; balanced, broad, Boeing, and Bayer are all plausible candidates. Bayer himself declined to clarify.) The structure was designed from first principles around the constraints of disk-based storage. Its core insight was elegant: if the bottleneck is the number of page reads, build a tree so wide and so shallow that traversal requires only a handful of them.
+Rudolf Bayer and Edward McCreight invented the B-tree in 1970 at Boeing Research Labs. (What the "B" stands for has never been officially settled; balanced, broad, Boeing, and Bayer are all plausible candidates. Bayer himself declined to clarify.) The structure was designed from first principles around the constraints of disk-based storage. Its core insight: if the bottleneck is the number of page reads, build a tree so wide and so shallow that traversal requires only a handful of them.
 
 The way it achieves this is by dramatically increasing fan-out. A BST node holds one key and two child pointers. A B-tree node, sized to fit a database page (8-16 KB), can hold hundreds or thousands of keys, giving it a fan-out in the hundreds or thousands. This is the single property that makes everything else work.
 
@@ -197,7 +197,7 @@ Any index other than the clustered index. Leaf nodes store the indexed column va
 {{< /definition >}}
 
 {{< callout title="The performance implication of secondary indexes" type="error" >}}
-An `INDEX` on `(email)` for a login query is nearly instant, requiring one B-tree descent. But the same query with `SELECT *` forces a second lookup into the clustered index for every matching row. If your query is reading thousands of rows via a secondary index, those thousands of double lookups add up. This is why `SELECT *` is genuinely expensive when used with non-covering secondary indexes.
+An `INDEX` on `(email)` for a login query is nearly instant, requiring one B-tree descent. But the same query with `SELECT *` forces a second lookup into the clustered index for every matching row. If your query is reading thousands of rows via a secondary index, those thousands of double lookups add up. This is why `SELECT *` is expensive when used with non-covering secondary indexes.
 {{< /callout >}}
 
 The escape hatch is a **covering index**: an index that includes all the columns the query needs in its leaf nodes, eliminating the second lookup entirely.

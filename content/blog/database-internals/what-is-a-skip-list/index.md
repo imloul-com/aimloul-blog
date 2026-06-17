@@ -14,7 +14,7 @@ Redis. The key-value store sitting behind a huge chunk of the internet's caching
 
 My first reaction was that I'd misread something. Then that it must be isolated to some edge case. But the more I dug, the clearer it became: this was deliberate. Not a shortcut, a tradeoff. One that gives up the deterministic guarantees of a balanced tree in exchange for simpler code, better cache behavior, and concurrency that scales well under real load.
 
-That structure is the **skip list**. And it's worth understanding properly.
+That structure is the **skip list**.
 
 ---
 
@@ -50,7 +50,7 @@ The algorithmic complexity is essentially the same. The real differences are imp
 A self-balancing binary search tree that guarantees $O(\log n)$ operations by enforcing structural rules after every insert and delete. Correct, but hard to implement and harder to make concurrent. [Wikipedia](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree)
 {{< /definition >}}
 
-{{< diagram src="redblacktree" caption="Red–black tree at a glance: a binary search tree whose nodes are colored red or black so the tree stays approximately balanced (same black-node count on every path from the root, no two consecutive reds, and similar rules). Dark nodes are black, bright nodes are red. For the full invariant list and history, see the Wikipedia article linked in the definition above." >}}
+{{< diagram src="redblacktree" caption="Red-black tree at a glance: a binary search tree whose nodes are colored red or black so the tree stays approximately balanced (same black-node count on every path from the root, no two consecutive reds, and similar rules). Dark nodes are black, bright nodes are red. For the full invariant list and history, see the Wikipedia article linked in the definition above." >}}
 
 When you insert into a red-black tree, the tree fixes itself with *rotations* (local swaps that change which node sits above which) and *recoloring* (flipping nodes between red and black to restore the balance rules). These fixups can touch nodes far from the insertion point, sometimes cascading all the way to the root. To insert safely when multiple threads are writing at once, you either take a single coarse-grained lock (one lock covering the whole tree, which forces writes to happen one at a time) or implement a protocol where threads hand off locks as they descend the tree, called lock coupling. Most implementations take the easy path and use the coarse lock.
 
@@ -275,7 +275,7 @@ With the structure understood, here's how it compares. Two columns mention **aug
   </tbody>
 </table>
 
-The "expected" qualifier is the honest difference. A red-black tree guarantees $O(\log n)$ worst case. A skip list guarantees it in expectation: the probability of exceeding it shrinks exponentially as $n$ grows, but it's not zero. For most production workloads, this is irrelevant. For hard real-time systems with strict latency bounds, it matters.
+The "expected" qualifier is the real difference. A red-black tree guarantees $O(\log n)$ worst case. A skip list guarantees it in expectation: the probability of exceeding it shrinks exponentially as $n$ grows, but it's not zero. For most production workloads, this is irrelevant. For hard real-time systems with strict latency bounds, it matters.
 
 ---
 
@@ -379,11 +379,11 @@ In every case, the skip list is chosen not for better big-O behavior (it's the s
 
 ---
 
-{{< section-label >}}The Honest Trade-offs{{< /section-label >}}
+{{< section-label >}}The Trade-offs{{< /section-label >}}
 
 ## What the Skip List Gives Up
 
-Three genuine tradeoffs worth knowing.
+Three real tradeoffs worth knowing.
 
 **Worst-case complexity is probabilistic, not guaranteed.** A red-black tree guarantees $O(\log n)$ for every operation. A skip list guarantees it in expectation. For most workloads, this is academic. For hard real-time systems or financial matching engines with strict latency requirements, the deterministic guarantee may matter.
 
@@ -420,7 +420,7 @@ ZRANGE leaderboard 0 -1 WITHSCORES
 
 ---
 
-{{< conclusion title="The Elegant Bet That Paid Off" label="Conclusion" >}}
+{{< conclusion title="The Bet That Paid Off" label="Conclusion" >}}
 What looks like an unprincipled shortcut, deciding structure with a coin flip, turns out to be the point. The randomness replaces the most fragile part of balanced trees: the rebalancing logic. Accept probabilistic balance instead of deterministic balance and an entire category of implementation bugs and concurrency hazards disappears, at no cost to the big-O numbers anyone actually cares about.
 
 That's why the same structure keeps showing up whenever someone needs a sorted index that's simple to write, simple to reason about, and simple to make concurrent: Redis, LevelDB, RocksDB, Java's standard library.
