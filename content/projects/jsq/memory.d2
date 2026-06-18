@@ -1,0 +1,34 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+
+direction: down
+
+file: "JSON file on disk\n(1 GB)"
+
+jsq: "jsq — streaming" {
+  src: "source mmap\nclean, reclaimable pages"
+  side: "index mmap (.jsonidx)\n48-byte records, pre-order"
+  ram: "owned RAM ≈ 34 MiB\nflat, file-size independent" {
+    style: {
+      bold: true
+    }
+  }
+  src -> ram: scan folds away
+  side -> ram
+}
+
+heap: "jq / jaq — parse to heap" {
+  parsed: "whole document parsed\nonto the heap"
+  ram2: "owned RAM ≈ 15–17 GB\n~16× file size" {
+    style: {
+      bold: true
+    }
+  }
+  parsed -> ram2
+}
+
+file -> jsq.src: mmap
+file -> heap.parsed: read + parse

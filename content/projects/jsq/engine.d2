@@ -1,0 +1,20 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+
+direction: down
+
+desktop: "BigJSON viewer\n(Tauri + Svelte) — primary"
+cli: "jsq CLI\n(Rust binary) — secondary"
+
+engine: "jsql engine (Rust)" {
+  parser: "Parser\nbyte-level, single pass"
+  index: "Offset index\n.jsonidx sidecar (mmap)"
+  query: "Query compiler\nlexer → surface AST → lower"
+  eval: "Evaluator\npush-based, streaming"
+}
+
+desktop -> engine: src-tauri bridge
+cli -> engine: links directly
