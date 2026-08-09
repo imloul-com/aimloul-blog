@@ -58,7 +58,7 @@ jobs:
 
       - name: Setup ORAS
         if: github.event_name != 'pull_request'
-        uses: oras-project/setup-oras@v1
+        uses: oras-project/setup-oras@v2
 
       - name: Login to GHCR
         if: github.event_name != 'pull_request'
