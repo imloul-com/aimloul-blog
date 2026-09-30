@@ -430,20 +430,26 @@ h1 em,
 .meta-dot { color: var(--border); }
 
 /* View counts are injected at the edge. Until then the placeholder is empty, so
-   the whole group (separator included) stays hidden rather than rendering
-   "· views" with no number. */
+   the whole group (separator included) stays hidden rather than rendering a
+   bare icon with no number. */
 .meta-views { display: none; }
 .meta-views:has([data-views]:not(:empty)) { display: contents; }
+.tool-views { display: none; }
+.tool-views:has([data-views-for]:not(:empty)) { display: inline-flex; }
 
+.views-figure { display: inline-flex; }
+.views-figure,
 .tool-views {
-  display: none;
-  margin-top: 10px;
+  align-items: center;
+  gap: 5px;
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-dim);
   letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
 }
-.tool-views:has([data-views-for]:not(:empty)) { display: block; }
+.views-figure svg,
+.tool-views svg { opacity: 0.55; flex-shrink: 0; }
 
 /* ── ARTICLE BODY ── */
 article {
@@ -1937,6 +1943,13 @@ article hr {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
+}
+
+.tool-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 7px;
 }
 
 .tool-title {
