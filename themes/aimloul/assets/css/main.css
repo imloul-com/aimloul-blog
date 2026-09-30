@@ -429,6 +429,22 @@ h1 em,
 }
 .meta-dot { color: var(--border); }
 
+/* View counts are injected at the edge. Until then the placeholder is empty, so
+   the whole group (separator included) stays hidden rather than rendering
+   "· views" with no number. */
+.meta-views { display: none; }
+.meta-views:has([data-views]:not(:empty)) { display: contents; }
+
+.tool-views {
+  display: none;
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+}
+.tool-views:has([data-views-for]:not(:empty)) { display: block; }
+
 /* ── ARTICLE BODY ── */
 article {
   animation: fadeUp 0.9s 0.1s ease both;

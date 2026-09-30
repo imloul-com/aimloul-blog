@@ -19,6 +19,11 @@
       {{ with .Params.subtitle }}
       <p class="tool-desc">{{ . }}</p>
       {{ end }}
+      {{ if not .Params.externalUrl }}
+      {{- /* Built from the index path rather than .RelPermalink, which the
+             page's `url` front matter overrides with a relative value. */ -}}
+      <span class="tool-views"><span data-views-for="{{ path.Join $.RelPermalink .File.TranslationBaseName | lower }}"></span> opens</span>
+      {{ end }}
     </div>
     <span class="hub-section-arrow">&rarr;</span>
   </a>
