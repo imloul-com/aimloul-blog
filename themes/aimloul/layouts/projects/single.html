@@ -32,6 +32,7 @@
       {{ with .Params.url }}
       <a href="{{ . }}" target="_blank" rel="noopener noreferrer" class="meta-link">{{ partial "icons.html" "external" }} Live</a>
       {{ end }}
+      {{ partial "view-count.html" (dict "withDot" false) }}
     </div>
   </header>
   {{ .Content }}

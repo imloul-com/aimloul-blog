@@ -36,6 +36,7 @@
       <span>{{ partial "read-time.html" . }}</span>
       <span class="meta-dot">&middot;</span>
       <span>{{ .Date.Format "Jan 2006" }}</span>
+      {{ partial "view-count.html" (dict "withDot" true) }}
     </div>
   </header>
   {{ .Content }}
