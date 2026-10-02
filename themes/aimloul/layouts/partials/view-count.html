@@ -1,2 +1,4 @@
-{{- /* Filled in by the edge router; stays hidden when absent (local builds, bots). */ -}}
-<span class="meta-views">{{ if .withDot }}<span class="meta-dot">&middot;</span>{{ end }}<span class="views-figure" title="Views">{{ partial "icons.html" "eye" }}<span data-views></span></span></span>
+{{- /* Filled in by the edge router; stays hidden when absent (local builds, bots).
+      Pass `path` to show another page's count, as listings do; omit it for the
+      current page. */ -}}
+<span class="meta-views">{{ if .withDot }}<span class="meta-dot">&middot;</span>{{ end }}<span class="views-figure" title="Views">{{ partial "icons.html" "eye" }}{{ with .path }}<span data-views-for="{{ . }}"></span>{{ else }}<span data-views></span>{{ end }}</span></span>

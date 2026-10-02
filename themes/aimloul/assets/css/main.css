@@ -433,7 +433,8 @@ h1 em,
    the whole group (separator included) stays hidden rather than rendering a
    bare icon with no number. */
 .meta-views { display: none; }
-.meta-views:has([data-views]:not(:empty)) { display: contents; }
+.meta-views:has([data-views]:not(:empty)),
+.meta-views:has([data-views-for]:not(:empty)) { display: contents; }
 .tool-views { display: none; }
 .tool-views:has([data-views-for]:not(:empty)) { display: inline-flex; }
 
